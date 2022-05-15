@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "es5",
+    "outDir": "./lib",
+
+    /* Modules */
+    "module": "commonjs" /* Specify what module code is generated. */,
+
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Type Checking */
+    "strict": true,
+    "skipLibCheck": true,
+    "strictPropertyInitialization": false
+  },
+  "rootDir": "./src",
+  "exclude": ["node_modules", "lib"],
+  "include": ["./src", "./test", "./*", "./config", "types/sublevel.d.ts"]
+}
