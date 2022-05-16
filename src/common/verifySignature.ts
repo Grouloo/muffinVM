@@ -9,7 +9,7 @@ export default function verifySignature(
   message: string,
   account: Account
 ): boolean {
-  const signatureBuffer = toUint8Array(signature)
+  const signatureBuffer = Buffer.from(signature, 'hex')
 
   const publicKey = toUint8Array(account.publicKey)
 

@@ -1,2 +1,6 @@
 ./storage
 ./node_modules
+./lib
+storage
+node_modules
+lib
