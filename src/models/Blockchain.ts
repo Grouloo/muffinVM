@@ -3,16 +3,22 @@ import Block from './Block'
 import { AddressReference } from './References'
 import { Meta, State } from './State'
 
-export default class Blockchain extends BaseObject {
+export interface BlockchainType {
   genesisBlock: Block
-  stateHash: AddressReference
+  currentBlockHash: AddressReference
+  meta: Meta
+}
+
+export default class Blockchain extends BaseObject implements BlockchainType {
+  genesisBlock: Block
+  currentBlockHash: AddressReference
   meta: Meta
 
-  constructor(data: Partial<Blockchain>) {
+  constructor(data: BlockchainType) {
     super(data)
   }
 
-  static init = (genesisBlock: Block) => {
-    return new this({ genesisBlock, stateHash: genesisBlock.hash })
+  static init = (genesisBlock: Block, meta: Meta) => {
+    return new this({ genesisBlock, currentBlockHash: genesisBlock.hash, meta })
   }
 }

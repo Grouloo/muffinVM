@@ -80,14 +80,20 @@ export default class Block extends BaseObject implements BlockType {
   ) => {
     const previousState = BackendAdapter.instance.useState(previousStateHash)
     let transactionsBash: Transaction[] = []
+    let index = transactionsBash.length
 
     // The validator can add a repayment of its bond
     // at the end of the block
     const interest = Transaction.instantiate({
+      order: index++,
+      from: '0x0',
       to: validator.address,
       amount: bond.interest,
       gas: 0,
-      value: bond.interest,
+      total: bond.interest,
+      data: '',
+      status: 'done',
+      signature: '0x0',
     })
     this.transactions.push(interest)
 
@@ -99,11 +105,15 @@ export default class Block extends BaseObject implements BlockType {
     // the validator is fully repayed and the bond is marked as payed
     if (bond.remainingBlocks <= 0) {
       const repayment = Transaction.instantiate({
+        order: index++,
+        from: '0x0',
         to: validator.address,
         amount: bond.principal,
         gas: 0,
         total: bond.principal,
-        value: bond.principal,
+        data: '',
+        status: 'done',
+        signature: '0x0',
       })
 
       bond.status = 'payed'

@@ -35,8 +35,13 @@ export default class Bond extends BaseObject implements BondType {
     const value =
       meta.idealSupply - meta.totalSupply + principal * (meta.taxRate + 1)
 
-    const rate = 0.01
-    const remainingBlocks = (value - principal) / (principal * rate)
+    let rate = 0.01
+    let remainingBlocks = Math.floor((value - principal) / (principal * rate))
+
+    if (remainingBlocks < 10) {
+      remainingBlocks = 10
+      rate = remainingBlocks / principal
+    }
 
     const interest = (value - principal) / remainingBlocks
 

@@ -1,6 +1,7 @@
 import chalk from 'chalk'
 import account from './commands/account'
 import blockchain from './commands/blockchain'
+import bonds from './commands/bonds'
 import sign from './commands/sign'
 
 export const commands: {
@@ -13,9 +14,15 @@ export const commands: {
   account: {
     create: async () => await account.create(),
     generate: async () => account.generatePrivateKey(),
+    balance: async () => await account.balance(),
   },
   blockchain: {
     init: async (path: string) => await blockchain.init(path),
+    meta: async () => await blockchain.meta(),
+    latestBlock: async () => await blockchain.latestBlock(),
+  },
+  bonds: {
+    generate: async () => await bonds.generate(),
   },
   exit: () => process.exit(),
   help: () => console.log(commands),

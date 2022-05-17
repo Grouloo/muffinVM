@@ -11,7 +11,7 @@ export default function verifySignature(
 ): boolean {
   const signatureBuffer = Buffer.from(signature, 'hex')
 
-  const publicKey = toUint8Array(account.publicKey)
+  const publicKey = toUint8Array(account.address)
 
   const messageBuffer = util.decodeUTF8(message)
 

@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import hdkey from 'hdkey'
 import inquirer from 'inquirer'
 import createAccount from '../../common/createAccount'
+import Account from '../../models/Account'
 
 async function create() {
   const entries = await inquirer.prompt([
@@ -58,4 +59,22 @@ async function generatePrivateKey() {
   return
 }
 
-export default { create, generatePrivateKey }
+async function balance() {
+  const entries = await inquirer.prompt([
+    {
+      name: 'address',
+      type: 'INPUT',
+      message: 'Address:',
+    },
+  ])
+
+  const address = entries.address
+
+  const balance = await Account.getBalance(address)
+
+  console.log(chalk.green(`${balance} FLT`))
+
+  return
+}
+
+export default { create, generatePrivateKey, balance }

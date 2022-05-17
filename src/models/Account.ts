@@ -1,3 +1,4 @@
+import BackendAdapter from '../adapters/BackendAdapter'
 import hash from '../common/hash'
 import BaseObject from './BaseObject'
 import { AddressReference } from './References'
@@ -6,7 +7,6 @@ export interface AccountType {
   nonce: number
   balance: number
   isContract: boolean
-  publicKey: string
   address: AddressReference
 }
 
@@ -14,7 +14,6 @@ export default class Account extends BaseObject {
   nonce: number
   balance: number
   isContract: boolean
-  publicKey: string
   address: AddressReference
 
   constructor(data: AccountType) {
@@ -26,15 +25,24 @@ export default class Account extends BaseObject {
   }
 
   static create = (address: AddressReference) => {
-    const publicKey = hash(address)
-
     return new this({
       address,
-      publicKey,
       nonce: 0,
       balance: 0,
       isContract: false,
     })
+  }
+
+  static getBalance = async (address: AddressReference) => {
+    const account = await BackendAdapter.instance
+      .useWorldState()
+      .read('accounts', address)
+
+    if (!account) {
+      throw "This account doesn't exist."
+    }
+
+    return account.balance
   }
 
   add = (value: number): number => {
