@@ -28,6 +28,7 @@ export const commands: {
   help: () => console.log(commands),
   sign: {
     message: async () => await sign.message(),
+    verify: async () => await sign.verify(),
   },
 }
 

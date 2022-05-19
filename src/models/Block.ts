@@ -24,6 +24,7 @@ export interface BlockType {
   volume?: number
   burned?: number
   signature: AddressReference
+  recovery: number
   bondAddress: AddressReference
 }
 
@@ -40,6 +41,7 @@ export default class Block extends BaseObject implements BlockType {
   volume: number = 0
   burned: number = 0
   signature: AddressReference
+  recovery: number
   bondAddress: AddressReference
 
   constructor(data: BlockType) {
@@ -94,6 +96,7 @@ export default class Block extends BaseObject implements BlockType {
       data: '',
       status: 'done',
       signature: '0x0',
+      recovery: 0,
     })
     this.transactions.push(interest)
 
@@ -114,6 +117,7 @@ export default class Block extends BaseObject implements BlockType {
         data: '',
         status: 'done',
         signature: '0x0',
+        recovery: 0,
       })
 
       bond.status = 'payed'
@@ -194,7 +198,7 @@ export default class Block extends BaseObject implements BlockType {
 
     // Validator's fields
     this.validatedBy = validator.address
-    this.signature = signMessage(privateKey, this.hash)
+    this.signature = (await signMessage(privateKey, this.hash)).signature
 
     // Saving block
     await BackendAdapter.instance
@@ -209,7 +213,7 @@ export default class Block extends BaseObject implements BlockType {
       .useState(previousStateHash)
       .read('accounts', this.validatedBy)
 
-    if (!verifySignature(this.signature, this.hash, validator)) {
+    if (!verifySignature(this.signature, this.hash, this.recovery)) {
       this.status = 'refused'
       this.reason = "Signature doesn't correspond to validator."
       return

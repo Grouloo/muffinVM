@@ -18,7 +18,7 @@ const init = () => {
 
   console.log(chalk.yellow('v1'))
 
-  console.log("Type 'help'")
+  console.log("Type 'help' to show commands")
 }
 
 const ask = () => {

@@ -20,6 +20,7 @@ export default async function createBlockchain(
     total: 6000,
     data: '',
     signature: '0x0',
+    recovery: 0,
   })
 
   const firstAccount = Account.instantiate({
@@ -41,6 +42,7 @@ export default async function createBlockchain(
     volume: 6000,
     signature: '0x0',
     bondAddress: '0x0',
+    recovery: 0,
   })
 
   const meta: Meta = {

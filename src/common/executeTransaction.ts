@@ -48,7 +48,7 @@ export default async function executeTransaction(
   const verifiedSignature = verifySignature(
     transaction.signature,
     message,
-    sender
+    transaction.recovery
   )
 
   if (!verifiedSignature) {

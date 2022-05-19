@@ -3,19 +3,22 @@ import util from 'tweetnacl-util'
 import Account from '../models/Account'
 import { AddressReference } from '../models/References'
 import toUint8Array from './toUint8Array'
+import * as secp from '@noble/secp256k1'
+import hash from './hash'
+import { Console } from 'console'
 
 export default function verifySignature(
   signature: AddressReference,
   message: string,
-  account: Account
-): boolean {
-  const signatureBuffer = Buffer.from(signature, 'hex')
+  recovery: number
+): any {
+  const publicKey = secp.recoverPublicKey(message, signature, recovery)
 
-  const publicKey = toUint8Array(account.address)
+  const parsedPublicKey = Buffer.from(publicKey).toString('hex').slice(2)
 
-  const messageBuffer = util.decodeUTF8(message)
+  const publicKeyHash = hash(Buffer.from(parsedPublicKey, 'hex'))
 
-  const verification = ecdsaVerify(signatureBuffer, messageBuffer, publicKey)
+  const address = `0x${publicKeyHash.slice(26)}`
 
-  return verification
+  return { address, publicKey }
 }

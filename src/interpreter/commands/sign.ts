@@ -1,4 +1,5 @@
 import inquirer from 'inquirer'
+import { verifySignature } from '../../common'
 import signMessage from '../../common/signMessage'
 
 async function message() {
@@ -18,11 +19,13 @@ async function message() {
   const privateKey = entries.PRIVATEKEY
   const message = entries.MESSAGE
 
-  const signature = signMessage(privateKey, message)
+  const { signature, recovery } = await signMessage(privateKey, message)
 
   console.log('='.repeat(78))
 
   console.log(`Signature: ${signature}`)
+
+  console.log(`Recovery: ${recovery}`)
 
   return
 }
@@ -30,25 +33,27 @@ async function message() {
 async function verify() {
   const entries = await inquirer.prompt([
     {
-      name: 'PRIVATEKEY',
+      name: 'signature',
       type: 'INPUT',
-      message: 'Private key:',
+      message: 'Signature:',
     },
     {
       name: 'MESSAGE',
       type: 'INPUT',
       message: 'Message:',
     },
+    { name: 'recovery', type: 'INPUT', message: 'Recovery:' },
   ])
 
-  const privateKey = entries.PRIVATEKEY
+  const signature = entries.signature
   const message = entries.MESSAGE
+  const recovery = parseInt(entries.recovery)
 
-  const signature = signMessage(privateKey, message)
+  const { address } = verifySignature(signature, message, recovery)
 
   console.log('='.repeat(78))
 
-  console.log(`Signature: ${signature}`)
+  console.log(`Address: ${address}`)
 
   return
 }

@@ -7,6 +7,7 @@ export interface TransactionInterface {
   hash?: AddressReference
   order: number
   signature: AddressReference
+  recovery: number
   from: AddressReference
   to: AddressReference
   status: 'pending' | 'aborted' | 'done'
@@ -24,6 +25,7 @@ export default class Transaction
   hash: AddressReference = '0x0'
   order: number
   signature: AddressReference
+  recovery: number
   from: AddressReference
   to: AddressReference
   status: 'pending' | 'aborted' | 'done'
