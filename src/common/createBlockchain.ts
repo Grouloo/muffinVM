@@ -16,8 +16,8 @@ export default async function createBlockchain(
     to: receiverAddress,
     status: 'done',
     amount: 6000,
-    gas: 0,
     total: 6000,
+    fees: 0,
     data: '',
     signature: '0x0',
     recovery: 0,
@@ -36,12 +36,10 @@ export default async function createBlockchain(
     status: 'accepted',
     blockHeight: 0,
     validatedBy: '0x0',
-    tax: 0.01,
     parentHash: '0x0',
     transactions: [firstTransaction],
     volume: 6000,
     signature: '0x0',
-    bondAddress: '0x0',
     recovery: 0,
   })
 

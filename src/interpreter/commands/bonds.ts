@@ -10,6 +10,6 @@ async function generate() {
 
   const bond = await Bond.generate(meta)
 
-  return console.log(bond.toJSON())
+  return console.log(bond._toJSON())
 }
 export default { generate }

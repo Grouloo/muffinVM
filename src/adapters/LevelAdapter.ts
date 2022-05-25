@@ -34,7 +34,7 @@ export default class LevelAdapter {
   }
   static instance: LevelAdapter
   constructor(path: string) {
-    this.db = new Level('./storage' /*path*/)
+    this.db = new Level(path || './storage')
 
     this.useWorldState()
 
@@ -74,7 +74,7 @@ export default class LevelAdapter {
     key: string,
     value: BaseObject
   ) => {
-    await this.collections[collection].put(key, value.toJSON())
+    await this.collections[collection].put(key, value._toJSON())
 
     return value
   }
@@ -92,7 +92,7 @@ export default class LevelAdapter {
   ) => {
     const oldValue = await this.read(collection, key)
 
-    const newValue = Object.assign(oldValue, value.toJSON)
+    const newValue = Object.assign(oldValue, value._toJSON())
 
     await this.collections[collection].put(key, newValue)
 
@@ -107,6 +107,43 @@ export default class LevelAdapter {
     const value = await this.collections[collection].all()
 
     return value
+  }
+
+  find = async (
+    collection: collectionType,
+    field: string,
+    value: any,
+    sort?: 'asc' | 'desc'
+  ): Promise<any[]> => {
+    const values = await this.collections[collection].iterateFilter(
+      (doc, key) => !!(doc[field] == value)
+    )
+
+    values.map((obj: any, index: number) => {
+      values[index] = COLLECTIONS[collection].instantiate(obj)
+    })
+
+    if (sort) {
+      return this.sort(values, sort)
+    }
+
+    return values
+  }
+
+  sort = async (value: any, order: 'asc' | 'desc') => {
+    let sortedValues
+
+    if (order == 'asc') {
+      sortedValues = value.sort((a: any, b: any) => {
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      })
+    } else {
+      sortedValues = value.sort((a: any, b: any) => {
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      })
+    }
+
+    return sortedValues
   }
 
   getState = async () => {

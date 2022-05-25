@@ -4,8 +4,11 @@ import inquirer from 'inquirer'
 import chalk from 'chalk'
 import figlet from 'figlet'
 import interpreter from './interpreter'
+import getmac from 'getmac'
+import hash from './common/hash'
+import { Muffin } from './models/State'
 
-const init = () => {
+const init = (muffin: Muffin) => {
   console.log(
     chalk.green(
       figlet.textSync('muffinVM', {
@@ -17,6 +20,8 @@ const init = () => {
   )
 
   console.log(chalk.yellow('v1'))
+
+  console.log(chalk.cyan(`Node ID: ${muffin.net.networkId}`))
 
   console.log("Type 'help' to show commands")
 }
@@ -30,13 +35,13 @@ const ask = () => {
     },
   ])
 }
-const run = async () => {
-  init()
+const run = async (muffin: Muffin) => {
+  init(muffin)
 
   while (true) {
     const { COMMAND } = await ask()
 
-    await interpreter(COMMAND)
+    await interpreter(COMMAND, muffin)
   }
 }
 

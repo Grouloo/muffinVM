@@ -7,9 +7,13 @@ export default class BaseObject {
     return new this(data)
   }
 
-  toJSON = () => {
+  _toJSON = () => {
     const { ...object } = this
 
-    return object
+    const stringified = JSON.stringify(object)
+
+    const parsed = JSON.parse(stringified)
+
+    return parsed
   }
 }

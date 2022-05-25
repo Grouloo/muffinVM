@@ -6,6 +6,7 @@ import executeTransaction from '../common/executeTransaction'
 import hash from '../common/hash'
 import Account from './Account'
 import BaseObject from './BaseObject'
+import Blockchain from './Blockchain'
 import Bond from './Bond'
 import { AddressReference } from './References'
 import { State } from './State'
@@ -17,15 +18,13 @@ export interface BlockType {
   reason?: string
   blockHeight: number
   validatedBy: AddressReference
-  tax: number
   hash: AddressReference
   parentHash: string
   transactions: Transaction[]
   volume?: number
-  burned?: number
-  signature: AddressReference
-  recovery: number
-  bondAddress: AddressReference
+  fees?: number
+  signature?: AddressReference
+  recovery?: number
 }
 
 export default class Block extends BaseObject implements BlockType {
@@ -34,15 +33,13 @@ export default class Block extends BaseObject implements BlockType {
   reason?: string
   blockHeight: number
   validatedBy: AddressReference
-  tax: number
   hash: AddressReference
   parentHash: string
   transactions: Transaction[]
   volume: number = 0
-  burned: number = 0
-  signature: AddressReference
-  recovery: number
-  bondAddress: AddressReference
+  fees: number = 0
+  signature?: AddressReference
+  recovery?: number
 
   constructor(data: BlockType) {
     super(data)
@@ -52,6 +49,35 @@ export default class Block extends BaseObject implements BlockType {
     } else {
       this.timestamp = new Date()
     }
+  }
+
+  static generate = async (address: AddressReference) => {
+    // Validators must process oldest transactions first
+    const transactions = await BackendAdapter.instance
+      .useWorldState()
+      .find('transactions', 'status', 'pending', 'asc')
+
+    const blockchain: Blockchain = await BackendAdapter.instance
+      .useWorldState()
+      .read('blockchain', 'blockchain')
+
+    // Maximum of transactions that can be put in a block cannot be above the number of accounts
+    transactions.slice(0, blockchain.meta.eoaCount - 1)
+
+    const timestamp = new Date()
+    const parentHash = blockchain.currentBlockHash
+    const blockHeight = blockchain.meta.blocksCount
+    const blockHash = hash(parentHash + timestamp + blockHeight)
+
+    return new this({
+      timestamp,
+      status: 'pending',
+      blockHeight,
+      validatedBy: address,
+      parentHash,
+      hash: blockHash,
+      transactions,
+    })
   }
 
   calculateHash = (): AddressReference => {
@@ -77,52 +103,11 @@ export default class Block extends BaseObject implements BlockType {
 
   executeBlock = async (
     previousStateHash: AddressReference,
-    validator: Account,
-    bond: Bond
+    validator: Account
   ) => {
     const previousState = BackendAdapter.instance.useState(previousStateHash)
     let transactionsBash: Transaction[] = []
     let index = transactionsBash.length
-
-    // The validator can add a repayment of its bond
-    // at the end of the block
-    const interest = Transaction.instantiate({
-      order: index++,
-      from: '0x0',
-      to: validator.address,
-      amount: bond.interest,
-      gas: 0,
-      total: bond.interest,
-      data: '',
-      status: 'done',
-      signature: '0x0',
-      recovery: 0,
-    })
-    this.transactions.push(interest)
-
-    bond.remainingBlocks -= 1
-
-    transactionsBash.push(interest.toJSON())
-
-    // When all the blocks of the bond have been validated,
-    // the validator is fully repayed and the bond is marked as payed
-    if (bond.remainingBlocks <= 0) {
-      const repayment = Transaction.instantiate({
-        order: index++,
-        from: '0x0',
-        to: validator.address,
-        amount: bond.principal,
-        gas: 0,
-        total: bond.principal,
-        data: '',
-        status: 'done',
-        signature: '0x0',
-        recovery: 0,
-      })
-
-      bond.status = 'payed'
-      this.transactions.push(repayment)
-    }
 
     const blockchain = await previousState.read('blockchain', 'blockchain')
 
@@ -135,9 +120,8 @@ export default class Block extends BaseObject implements BlockType {
         tx.status = 'done'
         tx.order = index
 
-        blockchain.meta.totalSupply -= tx.gas
         this.volume += tx.total
-        this.burned += tx.gas
+        this.fees += tx.fees
 
         transactionsBash.push(tx)
       } catch (e) {
@@ -148,12 +132,7 @@ export default class Block extends BaseObject implements BlockType {
       }
     })
 
-    // Updating chain's metadata
-    BackendAdapter.instance
-      .useWorldState()
-      .update('blockchain', 'blockchain', blockchain)
-
-    return { bond, transactionsBash }
+    return { transactionsBash, blockchain }
   }
 
   validate = async (
@@ -169,10 +148,9 @@ export default class Block extends BaseObject implements BlockType {
       state.accounts[hash(privateKey)]
     )
 
-    const { bond: newBond, transactionsBash } = await this.executeBlock(
+    const { transactionsBash, blockchain } = await this.executeBlock(
       state,
-      validator,
-      bond
+      validator
     )
 
     // Saving the transactions
@@ -193,7 +171,6 @@ export default class Block extends BaseObject implements BlockType {
       })
     )
 
-    this.hash = this.calculateHash()
     this.transactions = transactionsBash
 
     // Validator's fields
@@ -205,6 +182,11 @@ export default class Block extends BaseObject implements BlockType {
       .useWorldState()
       .create('blocks', this.hash, this)
 
+    // Updating chain's metadata
+    BackendAdapter.instance
+      .useWorldState()
+      .update('blockchain', 'blockchain', blockchain)
+
     return
   }
 
@@ -213,18 +195,16 @@ export default class Block extends BaseObject implements BlockType {
       .useState(previousStateHash)
       .read('accounts', this.validatedBy)
 
-    if (!verifySignature(this.signature, this.hash, this.recovery)) {
+    if (
+      !this.signature ||
+      !this.recovery ||
+      !verifySignature(this.signature, this.hash, this.recovery)
+    ) {
       this.status = 'refused'
       this.reason = "Signature doesn't correspond to validator."
       return
     }
 
-    const stateCollection = BackendAdapter.instance.useState(previousStateHash)
-
-    const bond = await stateCollection.read('bonds', this.bondAddress)
-
-    //const previousState = await stateCollection.getState()
-
-    await this.executeBlock(previousStateHash, validator, bond)
+    await this.executeBlock(previousStateHash, validator)
   }
 }

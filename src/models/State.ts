@@ -1,3 +1,4 @@
+import { Network } from 'ataraxia'
 import Account from './Account'
 import Block from './Block'
 import Bond from './Bond'
@@ -45,4 +46,8 @@ export interface Meta {
   totalSupply: number
   averageBlockVolume: number
   blocksCount: number
+}
+
+export interface Muffin {
+  net: Network<any>
 }

@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import inquirer from 'inquirer'
 import BackendAdapter from '../../adapters/BackendAdapter'
 import createBlockchain from '../../common/createBlockchain'
+import syncBlockchain from '../../common/syncBlockchain'
 
 async function init(path: string) {
   const entries = await inquirer.prompt([
@@ -21,6 +22,24 @@ async function init(path: string) {
     entries.chainId,
     entries.receiverAddress
   )
+
+  console.log(blockchain)
+
+  console.log(chalk.green('Blockchain initialized.'))
+
+  return
+}
+
+async function sync() {
+  const entries = await inquirer.prompt([
+    {
+      name: 'node',
+      type: 'INPUT',
+      message: 'Other node address:',
+    },
+  ])
+
+  const blockchain = await syncBlockchain(entries.receiverAddress)
 
   console.log(blockchain)
 

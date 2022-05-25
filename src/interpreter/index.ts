@@ -1,49 +1,66 @@
 import chalk from 'chalk'
+import { Muffin } from '../models/State'
 import account from './commands/account'
 import blockchain from './commands/blockchain'
 import bonds from './commands/bonds'
 import sign from './commands/sign'
+import network from './commands/network'
+import transactions from './commands/transactions'
 
 export const commands: {
   [command: string]:
     | {
-        [method: string]: ((arg?: any) => void) | ((arg?: any) => Promise<void>)
+        [method: string]:
+          | ((muffin: Muffin) => void)
+          | ((muffin: Muffin) => Promise<void>)
       }
-    | ((arg?: any) => void)
+    | ((muffin: Muffin) => void)
 } = {
   account: {
-    create: async () => await account.create(),
-    generate: async () => account.generatePrivateKey(),
-    balance: async () => await account.balance(),
+    create: async (muffin: Muffin) => await account.create(),
+    generate: async (muffin: Muffin) => account.generatePrivateKey(),
+    balance: async (muffin: Muffin) => await account.balance(),
   },
   blockchain: {
-    init: async (path: string) => await blockchain.init(path),
-    meta: async () => await blockchain.meta(),
-    latestBlock: async () => await blockchain.latestBlock(),
+    init: async (muffin: Muffin) => await blockchain.init(''),
+    meta: async (muffin: Muffin) => await blockchain.meta(),
+    latestBlock: async (muffin: Muffin) => await blockchain.latestBlock(),
   },
   bonds: {
-    generate: async () => await bonds.generate(),
+    generate: async (muffin: Muffin) => await bonds.generate(),
   },
-  exit: () => process.exit(),
-  help: () => console.log(commands),
+  exit: (muffin: Muffin) => process.exit(),
+  help: (muffin: Muffin) => console.log(commands),
+  network: {
+    nodes: async (muffin: Muffin) => await network.nodes(muffin),
+  },
   sign: {
-    message: async () => await sign.message(),
-    verify: async () => await sign.verify(),
+    message: async (muffin: Muffin) => await sign.message(),
+    verify: async (muffin: Muffin) => await sign.verify(),
+  },
+  transactions: {
+    create: async (muffin: Muffin) => await transactions.create(muffin),
+    read: async (muffin: Muffin) => await transactions.read(),
   },
 }
 
-export default async function commandInterpreter(command: string) {
+export default async function commandInterpreter(
+  command: string,
+  muffin: Muffin
+) {
   const identifiers = command.split(' ')
 
   try {
     if (typeof commands[identifiers[0]] == 'function') {
-      await (commands[identifiers[0]] as () => void)()
+      await (commands[identifiers[0]] as (muffin: Muffin) => void)(muffin)
     } else {
       await (
         commands[identifiers[0]] as {
-          [method: string]: (() => void) | (() => Promise<void>)
+          [method: string]:
+            | ((muffin: Muffin) => void)
+            | ((muffin: Muffin) => Promise<void>)
         }
-      )[identifiers[1]]()
+      )[identifiers[1]](muffin)
     }
   } catch (e) {
     console.error(chalk.red((e as Error).message))
