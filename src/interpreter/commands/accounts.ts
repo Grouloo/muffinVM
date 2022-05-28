@@ -1,6 +1,7 @@
 import chalk from 'chalk'
 import hdkey from 'hdkey'
 import inquirer from 'inquirer'
+import BackendAdapter from '../../adapters/BackendAdapter'
 import createAccount from '../../common/createAccount'
 import Account from '../../models/Account'
 
@@ -9,7 +10,7 @@ async function create() {
     {
       name: 'PRIVATEKEY',
       type: 'INPUT',
-      message: 'Private key :',
+      message: 'Private key:',
     },
   ])
 
@@ -21,6 +22,50 @@ async function create() {
 
   console.log(`Address: ${address}`)
   console.log(`Public key: ${publicKey}`)
+
+  return
+}
+
+async function read() {
+  const entries = await inquirer.prompt([
+    {
+      name: 'address',
+      type: 'INPUT',
+      message: 'Address:',
+    },
+  ])
+
+  const address = entries.address
+
+  const account: Account = await BackendAdapter.instance
+    .useWorldState()
+    .read('accounts', address)
+
+  console.log(account._toJSON())
+
+  return
+}
+
+async function storage() {
+  const entries = await inquirer.prompt([
+    {
+      name: 'address',
+      type: 'INPUT',
+      message: 'Address:',
+    },
+  ])
+
+  const address = entries.address
+
+  const account: Account = await BackendAdapter.instance
+    .useWorldState()
+    .read('accounts', address)
+
+  if (account.isOwned) {
+    return console.log(chalk.red('Account must be a contract.'))
+  }
+
+  console.log(account.contract?.storage)
 
   return
 }
@@ -77,4 +122,4 @@ async function balance() {
   return
 }
 
-export default { create, generatePrivateKey, balance }
+export default { create, read, storage, generatePrivateKey, balance }

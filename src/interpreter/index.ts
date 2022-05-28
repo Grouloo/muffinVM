@@ -1,11 +1,12 @@
 import chalk from 'chalk'
 import { Muffin } from '../models/State'
-import account from './commands/account'
+import account from './commands/accounts'
 import blockchain from './commands/blockchain'
 import bonds from './commands/bonds'
 import sign from './commands/sign'
 import network from './commands/network'
 import transactions from './commands/transactions'
+import run from './commands/run'
 
 export const commands: {
   [command: string]:
@@ -16,8 +17,10 @@ export const commands: {
       }
     | ((muffin: Muffin) => void)
 } = {
-  account: {
+  accounts: {
     create: async (muffin: Muffin) => await account.create(),
+    read: async (muffin: Muffin) => await account.read(),
+    storage: async (muffin: Muffin) => await account.storage(),
     generate: async (muffin: Muffin) => account.generatePrivateKey(),
     balance: async (muffin: Muffin) => await account.balance(),
   },
@@ -34,6 +37,7 @@ export const commands: {
   network: {
     nodes: async (muffin: Muffin) => await network.nodes(muffin),
   },
+  run: async (muffin: Muffin) => await run(),
   sign: {
     message: async (muffin: Muffin) => await sign.message(),
     verify: async (muffin: Muffin) => await sign.verify(),

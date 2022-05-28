@@ -1,4 +1,4 @@
-import { address } from './types'
+import { address } from '../types'
 
 export interface ERC721 {
   ApprovalForAll: (owner: address, operator: address, approved: boolean) => void

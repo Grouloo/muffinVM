@@ -20,7 +20,8 @@ async function init(path: string) {
 
   const blockchain = await createBlockchain(
     entries.chainId,
-    entries.receiverAddress
+    entries.receiverAddress,
+    ''
   )
 
   console.log(blockchain)

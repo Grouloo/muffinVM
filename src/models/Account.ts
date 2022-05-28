@@ -3,18 +3,27 @@ import hash from '../common/hash'
 import BaseObject from './BaseObject'
 import { AddressReference } from './References'
 
+export interface ContractType {
+  language: 'javascript'
+  className: string
+  script: string
+  storage: { [x: string]: any }
+}
+
 export interface AccountType {
   nonce: number
   balance: number
-  isContract: boolean
+  isOwned: boolean
   address: AddressReference
+  contract?: ContractType
 }
 
 export default class Account extends BaseObject {
   nonce: number
   balance: number
-  isContract: boolean
+  isOwned: boolean
   address: AddressReference
+  contract?: ContractType
 
   constructor(data: AccountType) {
     super(data)
@@ -29,7 +38,7 @@ export default class Account extends BaseObject {
       address,
       nonce: 0,
       balance: 0,
-      isContract: false,
+      isOwned: true,
     })
   }
 

@@ -5,10 +5,12 @@ import Blockchain from '../models/Blockchain'
 import { AddressReference } from '../models/References'
 import { Meta } from '../models/State'
 import Transaction from '../models/Transaction'
+import hash from './hash'
 
 export default async function createBlockchain(
   chainId: number,
-  receiverAddress: AddressReference
+  receiverAddress: AddressReference,
+  stackScript: string
 ): Promise<Blockchain> {
   const firstTransaction = Transaction.instantiate({
     order: 1,
@@ -26,8 +28,25 @@ export default async function createBlockchain(
   const firstAccount = Account.instantiate({
     nonce: 0,
     balance: 6000,
-    isContract: false,
+    isOwned: true,
     address: receiverAddress,
+  })
+
+  const firstContract = Account.instantiate({
+    nonce: 0,
+    balance: 0,
+    isOwned: false,
+    address: '0x0',
+    contract: {
+      language: 'javascript',
+      className: 'StackedFloat',
+      script: stackScript,
+      storage: {
+        balances: { [receiverAddress]: 1 },
+        tokenTotalSupply: 6,
+        distributedTokens: 1,
+      },
+    },
   })
 
   const genesisBlock: Block = new Block({
@@ -76,6 +95,11 @@ export default async function createBlockchain(
   await BackendAdapter.instance
     .useWorldState()
     .create('accounts', firstAccount.address, firstAccount)
+
+  // Saving contract
+  await BackendAdapter.instance
+    .useWorldState()
+    .create('accounts', firstContract.address, firstContract)
 
   return blockchain
 }
