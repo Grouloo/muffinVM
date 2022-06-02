@@ -5,9 +5,10 @@ class StackedFloat extends App implements ERC20 {
   tokenSymbol: string = 'SFT'
 
   tokenTotalSupply: number
-  distributedTokens: number
   balances: { [x: address]: number }
   allowed: { [x: address]: { [key: address]: number } }
+  blocks: { [x: address]: number }
+  stakes: { [x: address]: number }
 
   constructor(data: any) {
     super(data)
@@ -24,22 +25,38 @@ class StackedFloat extends App implements ERC20 {
       this.allowed = {}
     }
 
-    if (!this.distributedTokens) {
-      this.distributedTokens = 0
+    if (!this.blocks) {
+      this.blocks = {}
+    }
+
+    if (!this.stakes) {
+      this.stakes = {}
     }
   }
 
   // Events
-  protected Transfer = (from: address, to: address, value: number) => {
+  #Transfer = (from: address, to: address, value: number) => {
     if (value > this.balances[from]) {
       throw 'Not enough funds.'
     }
 
     this.balances[from] -= value
+
+    if (!this.balances[to]) {
+      this.balances[to] = 0
+    }
+
     this.balances[to] += value
+
+    this.blocks[from] = 0
+    this.stakes[from] = 0
   }
 
-  protected Approval = (owner: address, spender: address, value: number) => {
+  #Approval = (owner: address, spender: address, value: number) => {
+    if (!this.allowed[this.msg.sender]) {
+      this.allowed[this.msg.sender] = {}
+    }
+
     this.allowed[this.msg.sender][spender] = value
   }
 
@@ -65,7 +82,7 @@ class StackedFloat extends App implements ERC20 {
   }
 
   transfer = (to: address, value: number) => {
-    this.Transfer(this.msg.sender, to, value)
+    this.#Transfer(this.msg.sender, to, value)
   }
 
   transferFrom = (from: address, to: address, value: number) => {
@@ -79,7 +96,7 @@ class StackedFloat extends App implements ERC20 {
 
     this.allowed[from][this.msg.sender] -= value
 
-    this.Transfer(from, to, value)
+    this.#Transfer(from, to, value)
   }
 
   approve = (spender: address, value: number) => {
@@ -90,7 +107,7 @@ class StackedFloat extends App implements ERC20 {
       throw 'Not enough funds.'
     }
 
-    this.Approval(this.msg.sender, spender, value)
+    this.#Approval(this.msg.sender, spender, value)
   }
 
   allowance = (owner: address, spender: address) => {
@@ -99,5 +116,37 @@ class StackedFloat extends App implements ERC20 {
     }
 
     return this.allowed[owner][spender]
+  }
+
+  // Minting
+  mint = (account: address, amount: number) => {
+    if (this.msg.amount < amount * 1000) {
+      throw 'Not enough funds. A StackedFloat costs 1000 FLT.'
+    }
+
+    if (this.msg.amount > amount * 1000) {
+      throw 'Too much funds. Be careful when making transactions!'
+    }
+
+    if (!this.balances[account]) {
+      this.balances[account] = 0
+    }
+
+    this.tokenTotalSupply += amount
+
+    this.balances[account] += amount
+  }
+
+  // Burning
+  burn = (account: address, amount: number) => {
+    if (this.balances[account] < amount) {
+      throw 'Balance insufficient.'
+    }
+
+    this.tokenTotalSupply -= amount
+
+    this.balances[account] -= amount
+
+    this.msg.makeTransaction(account, amount * 1000)
   }
 }

@@ -8,6 +8,7 @@ import chalk from 'chalk'
 export default async function executeApp(
   senderAddress: AddressReference,
   receiverAddress: AddressReference,
+  amount: number,
   method: string,
   args: any[]
 ) {
@@ -26,15 +27,24 @@ export default async function executeApp(
 
   console.log(chalk.yellow(`Running ${account.contract.className}`))
 
+  const makeTransaction = (to: muffin.address, amount: number) => {
+    tx.push({ from: receiverAddress, to, amount, fees: 0, total: amount })
+  }
+
   const context: {
     storage: { [x: string]: any }
+    tx: any[]
     'muffin-utils': any
     res: any
     require?: any
     module?: any
     console?: any
   } = {
-    storage: { ...account.contract.storage, msg: { sender: senderAddress } },
+    storage: {
+      ...account.contract.storage,
+      msg: { sender: senderAddress, amount, makeTransaction },
+    },
+    tx: [],
     res: undefined,
     'muffin-utils': muffin,
     require,
@@ -44,7 +54,7 @@ export default async function executeApp(
 
   let params = ''
   args.map((arg: any, index: number) => {
-    params += typeof arg == 'string' ? `"${arg}"` : arg
+    params += /^\d+$/.test(arg) ? parseFloat(arg) : `"${arg}"`
 
     if (index != args.length - 1) {
       params += ','
@@ -59,7 +69,7 @@ export default async function executeApp(
 
   executableScript.runInContext(context)
 
-  const { storage, res } = context
+  const { storage, res, tx } = context
 
-  return { storage, res }
+  return { storage, res, tx }
 }

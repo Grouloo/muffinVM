@@ -10,8 +10,8 @@ export interface TransactionInterface {
   hash?: AddressReference
   order?: number
   timestamp?: Date
-  signature: AddressReference
-  recovery: number
+  signature?: AddressReference
+  recovery?: number
   from: AddressReference
   to: AddressReference
   status: 'pending' | 'aborted' | 'done'
@@ -20,6 +20,7 @@ export interface TransactionInterface {
   fees: number
   total: number
   data: string
+  internalTransactions?: Transaction[]
 }
 
 export default class Transaction
@@ -29,8 +30,8 @@ export default class Transaction
   hash: AddressReference = '0x0'
   order?: number
   timestamp: Date = new Date()
-  signature: AddressReference
-  recovery: number
+  signature?: AddressReference
+  recovery?: number
   from: AddressReference
   to: AddressReference
   status: 'pending' | 'aborted' | 'done'
@@ -39,6 +40,7 @@ export default class Transaction
   fees: number
   total: number
   data: string
+  internalTransactions?: Transaction[]
 
   constructor(data: TransactionInterface) {
     super(data)

@@ -11,8 +11,8 @@ export default function verifySignature(
   signature: AddressReference,
   message: string,
   recovery: number
-): any {
-  const publicKey = secp.recoverPublicKey(message, signature, recovery)
+) {
+  const publicKey = secp.recoverPublicKey(message.slice(2), signature, recovery)
 
   const parsedPublicKey = Buffer.from(publicKey).toString('hex').slice(2)
 

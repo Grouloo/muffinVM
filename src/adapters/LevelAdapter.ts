@@ -88,7 +88,7 @@ export default class LevelAdapter {
   update = async (
     collection: collectionType,
     key: string,
-    value: BaseObject
+    value: { [x: string]: any }
   ) => {
     const oldValue = await this.read(collection, key)
 

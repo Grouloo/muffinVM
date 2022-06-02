@@ -5,3 +5,4 @@ storage
 node_modules
 lib
 ./pawnee
+./src/me.json

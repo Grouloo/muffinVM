@@ -43,8 +43,9 @@ export default async function createBlockchain(
       script: stackScript,
       storage: {
         balances: { [receiverAddress]: 1 },
-        tokenTotalSupply: 6,
-        distributedTokens: 1,
+        blocks: { [receiverAddress]: 1 },
+        stake: { [receiverAddress]: 1 },
+        tokenTotalSupply: 1,
       },
     },
   })

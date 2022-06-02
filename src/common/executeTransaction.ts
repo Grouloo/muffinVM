@@ -1,3 +1,5 @@
+import { text } from 'stream/consumers'
+import { executeApp } from '.'
 import BackendAdapter from '../adapters/BackendAdapter'
 import Account from '../models/Account'
 import { AddressReference } from '../models/References'
@@ -10,17 +12,18 @@ import verifySignature from './verifySignature'
 export default async function executeTransaction(
   transaction: Transaction,
   previousStateHash: AddressReference,
-  order: number
-): Promise<void> {
+  order: number,
+  executeInternalTransactions: boolean
+): Promise<Transaction[] | undefined> {
   let blockchain = await BackendAdapter.instance
     .useWorldState()
     .read('blockchain', 'blockchain')
 
-  let sender = await BackendAdapter.instance
+  let sender: Account = await BackendAdapter.instance
     .useWorldState()
     .read('accounts', transaction.from)
 
-  let receiver = await BackendAdapter.instance
+  let receiver: Account = await BackendAdapter.instance
     .useWorldState()
     .read('accounts', transaction.to)
 
@@ -45,17 +48,89 @@ export default async function executeTransaction(
     transaction.data
   )
 
-  const verifiedSignature = verifySignature(
-    transaction.signature,
-    message,
-    transaction.recovery
-  )
-
-  if (!verifiedSignature) {
-    throw "The signature doesn't fit the sender."
+  if (sender.isOwned && (!transaction.signature || !transaction.recovery)) {
+    throw 'Missing signature or recovery'
   }
 
-  if (receiver.isContract) {
+  const { address } = verifySignature(
+    transaction.signature as AddressReference,
+    message,
+    transaction.recovery as number
+  )
+
+  if (sender.isOwned && address != sender.address) {
+    throw 'Bad signature.'
+  }
+
+  // If executeInternalTransactions is set on false,
+  // there should be no transaction emanating from non-externally owned accounts
+  if (!sender.isOwned && !executeInternalTransactions) {
+    throw 'External transaction expected, but this is an internal transaction.'
+  }
+
+  if (!receiver.isOwned) {
+    sender.withdraw(transaction.total)
+    receiver.add(transaction.amount)
+
+    const [method, params] = transaction.data.split('(')
+
+    const args = params.split(',')
+
+    try {
+      const { storage, tx } = await executeApp(
+        sender.address,
+        receiver.address,
+        transaction.amount,
+        method,
+        args
+      )
+
+      // Getting contract's data
+      const { contract }: Account = await BackendAdapter.instance
+        .useWorldState()
+        .read('accounts', receiver.address)
+
+      if (!contract) {
+        throw 'Not an app.'
+      }
+
+      // Executing all internal transactions emitted during runtime
+      const internalTransactions = await Promise.all(
+        tx.map(async (internalTransaction: Transaction) => {
+          const subTx = await executeTransaction(
+            internalTransaction,
+            previousStateHash,
+            0,
+            true
+          )
+
+          if (!subTx) {
+            return
+          }
+
+          internalTransaction.internalTransactions = subTx.filter(function (
+            element
+          ) {
+            return element !== undefined
+          })
+
+          return internalTransaction
+        })
+      )
+
+      contract.storage = storage
+
+      // Saving new storage content
+      await BackendAdapter.instance
+        .useWorldState()
+        .update('accounts', receiver.address, { contract })
+
+      return internalTransactions.filter(function (element) {
+        return element !== undefined
+      }) as Transaction[]
+    } catch (e) {
+      throw 'Internal App Error.'
+    }
   } else {
     sender.withdraw(transaction.total)
     receiver.add(transaction.amount)
@@ -69,7 +144,7 @@ export default async function executeTransaction(
       .update('accounts', sender.address, sender)
     await BackendAdapter.instance
       .useWorldState()
-      .update('accounts', sender.receiver, receiver)
+      .update('accounts', receiver.address, receiver)
   }
 
   return

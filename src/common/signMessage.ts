@@ -7,9 +7,13 @@ export default async function signMessage(
   privateKey: AddressReference,
   message: AddressReference
 ) {
-  const [signatureBuffer, recovery] = await secp.sign(message, privateKey, {
-    recovered: true,
-  })
+  const [signatureBuffer, recovery] = await secp.sign(
+    message.slice(2),
+    privateKey,
+    {
+      recovered: true,
+    }
+  )
   const signature = toHex(signatureBuffer)
 
   return { signature, recovery }
