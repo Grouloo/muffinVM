@@ -1,12 +1,9 @@
-import { text } from 'stream/consumers'
 import { executeApp } from '.'
 import BackendAdapter from '../adapters/BackendAdapter'
 import Account from '../models/Account'
 import { AddressReference } from '../models/References'
-import { State } from '../models/State'
 import Transaction from '../models/Transaction'
 import composeMessage from './composeMessage'
-import toUint8Array from './toUint8Array'
 import verifySignature from './verifySignature'
 
 export default async function executeTransaction(
