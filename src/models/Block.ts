@@ -113,7 +113,10 @@ export default class Block extends BaseObject implements BlockType {
     let transactionsBash: Transaction[] = []
     let index = transactionsBash.length
 
-    const blockchain = await previousState.read('blockchain', 'blockchain')
+    const blockchain: Blockchain = await previousState.read(
+      'blockchain',
+      'blockchain'
+    )
 
     // Generating state hash
     this.hash = hash(JSON.stringify(this.transactions))
@@ -178,6 +181,12 @@ export default class Block extends BaseObject implements BlockType {
       .create('blocks', this.hash, this)
 
     // Updating chain's metadata
+    blockchain.currentBlockHash = this.hash
+    blockchain.meta.blocksCount += 1
+    blockchain.meta.averageBlockVolume =
+      (blockchain.meta.averageBlockVolume + this.volume) /
+      blockchain.meta.blocksCount
+
     BackendAdapter.instance
       .useWorldState()
       .update('blockchain', 'blockchain', blockchain)
@@ -258,6 +267,9 @@ export default class Block extends BaseObject implements BlockType {
 
     try {
       await this.executeBlock(previousStateHash, validator)
+
+      this.status = 'accepted'
+      BackendAdapter.instance.useWorldState().update('blocks', this.hash, this)
       return true
     } catch (e) {
       this.status = 'refused'

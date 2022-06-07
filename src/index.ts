@@ -4,6 +4,12 @@ import getmac from 'getmac'
 import hash from './common/hash'
 import { Network, AnonymousAuth, Message } from 'ataraxia'
 import { TCPTransport, TCPPeerMDNSDiscovery } from 'ataraxia-tcp'
+import {
+  Services,
+  ServiceContract,
+  stringType,
+  numberType,
+} from 'ataraxia-services'
 import minimist from 'minimist'
 import { Muffin } from './models/State'
 import Transaction from './models/Transaction'
@@ -25,7 +31,7 @@ const booting = async () => {
 
   console.log(chalk.yellow(`Connecting to network ${chainId}...`))
 
-  const net = connect(chainId)
+  const { net, services } = connect(chainId)
 
   console.log(chalk.green('Ready to go!'))
 
@@ -68,7 +74,7 @@ const booting = async () => {
         stakes[a] > stakes[b] ? a : b
       )
 
-      if (block.validatedBy != expectedValidator) {
+      if (block.validatedBy !== expectedValidator) {
         return
       }
 
@@ -76,7 +82,7 @@ const booting = async () => {
         .useWorldState()
         .read('blockchain', 'blockchain')
 
-      const isValid = block.confirm(currentBlockHash)
+      const isValid = await block.confirm(currentBlockHash)
 
       // Punishing the validator if needed
       if (!isValid) {
@@ -85,6 +91,9 @@ const booting = async () => {
 
       // Resetting validator blocks count
       contract.storage.blocks[block.validatedBy] = 0
+
+      // Updating validator's stake
+      contract.storage.stakes[block.validatedBy] = 0
 
       // Updating everyone's stake
       Object.keys(contract.storage.blocks).map((owner: any) => {
@@ -122,7 +131,7 @@ const booting = async () => {
         newBlock.recovery = recovery
 
         // Broadcasting to the network
-        muffin.net.broadcast('blocks', newBlock)
+        muffin.net.broadcast('blocks', newBlock._toJSON())
 
         // Storing in DB
         BackendAdapter.instance
@@ -132,10 +141,69 @@ const booting = async () => {
     }
   })
 
+  // Sync service declaration
+  const SyncService = new ServiceContract().describeMethod(
+    'sync' as unknown as never,
+    {
+      returnType: stringType,
+      parameters: [
+        {
+          name: 'blockHeight',
+          type: numberType,
+        },
+      ],
+    } as unknown as never
+  )
+
+  // Syncing service
+  services.register(
+    'sync',
+    SyncService.implement({
+      async sync(blockHeight: number) {
+        const blocks = await BackendAdapter.instance
+          .useWorldState()
+          .query('blocks', ['blockHeight', '>', blockHeight], 'asc')
+
+        return blocks
+      },
+    })
+  )
+
+  // Syncing VM
+  let { currentBlockHash, meta }: Blockchain = await BackendAdapter.instance
+    .useWorldState()
+    .read('blockchain', 'blockchain')
+
+  const syncService = services.get('sync')
+  if (syncService.available) {
+    const blocks: Block[] = (await syncService.call(
+      'sync',
+      meta.blocksCount + 1
+    )) as unknown as Block[]
+
+    blocks.map(async (block: Block) => {
+      if (block.parentHash != currentBlockHash) {
+        return
+      }
+
+      await block.confirm(block.parentHash as AddressReference)
+
+      let updatedChain: Blockchain = await BackendAdapter.instance
+        .useWorldState()
+        .read('blockchain', 'blockchain')
+
+      currentBlockHash = updatedChain.currentBlockHash
+      meta = updatedChain.meta
+    })
+  }
+
   // Join the network
   net.join()
 
-  const muffin: Muffin = { net }
+  // Join the services on top of the network
+  services.join()
+
+  const muffin: Muffin = { net, services }
 
   run(muffin)
 }
@@ -184,7 +252,10 @@ const connect = (chainId: number) => {
     ],
   })
 
-  return net
+  // @ts-ignore
+  const services = new Services(net)
+
+  return { net, services }
 }
 
 booting()

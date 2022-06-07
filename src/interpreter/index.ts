@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import { Muffin } from '../models/State'
 import account from './commands/accounts'
 import blockchain from './commands/blockchain'
+import blocks from './commands/blocks'
 import bonds from './commands/bonds'
 import sign from './commands/sign'
 import network from './commands/network'
@@ -26,8 +27,12 @@ export const commands: {
   },
   blockchain: {
     init: async (muffin: Muffin) => await blockchain.init(''),
+    snap: async (muffin: Muffin) => await blockchain.snap(muffin),
     meta: async (muffin: Muffin) => await blockchain.meta(),
     latestBlock: async (muffin: Muffin) => await blockchain.latestBlock(),
+  },
+  blocks: {
+    read: async (muffin: Muffin) => await blocks.read(),
   },
   bonds: {
     generate: async (muffin: Muffin) => await bonds.generate(),

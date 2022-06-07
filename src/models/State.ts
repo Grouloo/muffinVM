@@ -1,4 +1,5 @@
 import { Network } from 'ataraxia'
+import { Services } from 'ataraxia-services'
 import Account from './Account'
 import Block from './Block'
 import Bond from './Bond'
@@ -50,4 +51,5 @@ export interface Meta {
 
 export interface Muffin {
   net: Network<any>
+  services: Services
 }

@@ -17,8 +17,8 @@ export default async function createBlockchain(
     from: '0x0',
     to: receiverAddress,
     status: 'done',
-    amount: 6000,
-    total: 6000,
+    amount: 5000,
+    total: 5000,
     fees: 0,
     data: '',
     signature: '0x0',
@@ -27,14 +27,14 @@ export default async function createBlockchain(
 
   const firstAccount = Account.instantiate({
     nonce: 0,
-    balance: 6000,
+    balance: 5000,
     isOwned: true,
     address: receiverAddress,
   })
 
   const firstContract = Account.instantiate({
     nonce: 0,
-    balance: 0,
+    balance: 1000,
     isOwned: false,
     address: '0x0',
     contract: {
@@ -44,7 +44,7 @@ export default async function createBlockchain(
       storage: {
         balances: { [receiverAddress]: 1 },
         blocks: { [receiverAddress]: 1 },
-        stake: { [receiverAddress]: 1 },
+        stakes: { [receiverAddress]: 1 },
         tokenTotalSupply: 1,
       },
     },

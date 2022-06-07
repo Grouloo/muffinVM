@@ -14,6 +14,11 @@ export default async function run() {
       message: 'Contract address:',
     },
     {
+      name: 'amount',
+      type: 'INPUT',
+      message: 'Amount (FLT):',
+    },
+    {
       name: 'method',
       type: 'INPUT',
       message: 'Method name:',
@@ -25,13 +30,14 @@ export default async function run() {
     },
   ])
 
-  const { senderAddress, method, receiverAddress, params } = entries
+  const { senderAddress, method, receiverAddress, params, amount } = entries
 
   const args = params.split(',')
 
   const { storage, res } = await executeApp(
     senderAddress,
     receiverAddress,
+    amount,
     method,
     args
   )

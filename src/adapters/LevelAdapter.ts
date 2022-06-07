@@ -1,4 +1,4 @@
-import Level from 'level-ts'
+import { Level } from 'level'
 import Sub from 'sublevel'
 import BaseObject from '../models/BaseObject'
 import Account from '../models/Account'
@@ -34,7 +34,7 @@ export default class LevelAdapter {
   }
   static instance: LevelAdapter
   constructor(path: string) {
-    this.db = new Level(path || './storage')
+    this.db = new Level(path || './storage', { valueEncoding: 'json' })
 
     this.useWorldState()
 
@@ -42,12 +42,14 @@ export default class LevelAdapter {
   }
 
   initializeState = (stateHash: AddressReference) => {
-    this.state = new Level(Sub(this.db, stateHash))
+    this.state = this.db.sublevel(stateHash) as unknown as Level
 
     // Initializating all collections
     this.collections = {}
     Object.keys(COLLECTIONS).map((collection) => {
-      this.collections[collection] = new Level(Sub(this.state, collection))
+      this.collections[collection] = this.db.sublevel(
+        collection
+      ) as unknown as Level
     })
   }
 
@@ -64,7 +66,7 @@ export default class LevelAdapter {
   }
 
   all = async () => {
-    const response = await this.state.all()
+    const response = await this.state.iterator().all()
 
     return response
   }
@@ -74,15 +76,22 @@ export default class LevelAdapter {
     key: string,
     value: BaseObject
   ) => {
-    await this.collections[collection].put(key, value._toJSON())
+    const stringifiedValue = JSON.stringify(value._toJSON())
+    await this.collections[collection].put(key, stringifiedValue)
 
     return value
   }
 
   read = async (collection: collectionType, key: string) => {
-    const value = await this.collections[collection].get(key)
+    const value = await this.collections[collection].get(key, {
+      valueEncoding: 'utf8',
+    })
 
-    return COLLECTIONS[collection].instantiate(value) as typeof value
+    const parsedValue = JSON.parse(value)
+
+    return COLLECTIONS[collection].instantiate(
+      parsedValue
+    ) as typeof parsedValue
   }
 
   update = async (
@@ -92,9 +101,9 @@ export default class LevelAdapter {
   ) => {
     const oldValue = await this.read(collection, key)
 
-    const newValue = Object.assign(oldValue, value._toJSON())
+    const newValue = Object.assign(oldValue, value)
 
-    await this.collections[collection].put(key, newValue)
+    await this.create(collection, key, newValue)
 
     return COLLECTIONS[collection].instantiate(newValue)
   }
@@ -104,7 +113,7 @@ export default class LevelAdapter {
   }
 
   list = async (collection: collectionType) => {
-    const value = await this.collections[collection].all()
+    const value = await this.collections[collection].iterator().all()
 
     return value
   }
@@ -115,9 +124,39 @@ export default class LevelAdapter {
     value: any,
     sort?: 'asc' | 'desc'
   ): Promise<any[]> => {
-    const values = await this.collections[collection].iterateFilter(
-      (doc, key) => !!(doc[field] == value)
-    )
+    const values: any[] = await (
+      await this.collections[collection].iterator().all()
+    ).filter((doc: any) => !!(doc[field] == value))
+
+    values.map((obj: any, index: number) => {
+      values[index] = COLLECTIONS[collection].instantiate(obj)
+    })
+
+    if (sort) {
+      return this.sort(values, sort)
+    }
+
+    return values
+  }
+
+  query = async (
+    collection: collectionType,
+    q: [string, '>' | '<', any],
+    sort?: 'asc' | 'desc'
+  ): Promise<any[]> => {
+    // Sublevels instances don't support filter and find
+    // So we have to use .all() first
+    // This is not efficient!
+    const values: any[] = await (
+      await this.collections[collection].iterator().all()
+    ).filter((doc: any) => {
+      switch (q[1]) {
+        case '>':
+          return !!(doc[q[0]] > q[2])
+        case '<':
+          return !!(doc[q[0]] < q[2])
+      }
+    })
 
     values.map((obj: any, index: number) => {
       values[index] = COLLECTIONS[collection].instantiate(obj)

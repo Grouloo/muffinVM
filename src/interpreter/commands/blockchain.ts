@@ -1,8 +1,12 @@
 import chalk from 'chalk'
 import inquirer from 'inquirer'
 import BackendAdapter from '../../adapters/BackendAdapter'
+import { createAccount, signMessage } from '../../common'
 import createBlockchain from '../../common/createBlockchain'
 import syncBlockchain from '../../common/syncBlockchain'
+import Block from '../../models/Block'
+import { AddressReference } from '../../models/References'
+import { Muffin } from '../../models/State'
 
 async function init(path: string) {
   const entries = await inquirer.prompt([
@@ -27,6 +31,38 @@ async function init(path: string) {
   console.log(blockchain)
 
   console.log(chalk.green('Blockchain initialized.'))
+
+  return
+}
+
+async function snap(muffin: Muffin) {
+  const entries = await inquirer.prompt([
+    {
+      name: 'privateKey',
+      type: 'INPUT',
+      message: 'private key:',
+    },
+  ])
+
+  const { privateKey } = entries
+
+  const { address } = createAccount(privateKey)
+
+  const block = await Block.generate(address as AddressReference)
+
+  const { signature, recovery } = await signMessage(
+    privateKey as AddressReference,
+    block.hash
+  )
+
+  block.signature = signature
+  block.recovery = recovery
+
+  console.log(block._toJSON())
+
+  await muffin.net.broadcast('blocks', block._toJSON())
+
+  console.log(chalk.green('Blockchain snapped.'))
 
   return
 }
@@ -69,4 +105,4 @@ async function latestBlock() {
   return console.log(block)
 }
 
-export default { init, meta, latestBlock }
+export default { init, snap, meta, latestBlock }
