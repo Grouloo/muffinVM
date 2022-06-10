@@ -28,11 +28,16 @@ export const commands: {
   blockchain: {
     init: async (muffin: Muffin) => await blockchain.init(''),
     snap: async (muffin: Muffin) => await blockchain.snap(muffin),
+    sync: async (muffin: Muffin) => await blockchain.sync(muffin),
     meta: async (muffin: Muffin) => await blockchain.meta(),
     latestBlock: async (muffin: Muffin) => await blockchain.latestBlock(),
   },
   blocks: {
     read: async (muffin: Muffin) => await blocks.read(),
+    accepted: async (muffin: Muffin) => await blocks.accepted(),
+    pending: async (muffin: Muffin) => await blocks.pending(),
+    refused: async (muffin: Muffin) => await blocks.refused(),
+    lastRefused: async (muffin: Muffin) => await blocks.lastRefused(),
   },
   bonds: {
     generate: async (muffin: Muffin) => await bonds.generate(),
@@ -49,7 +54,11 @@ export const commands: {
   },
   transactions: {
     create: async (muffin: Muffin) => await transactions.create(muffin),
+    toContract: async (muffin: Muffin) => await transactions.toContract(muffin),
     read: async (muffin: Muffin) => await transactions.read(),
+    done: async (muffin: Muffin) => await transactions.done(),
+    pending: async (muffin: Muffin) => await transactions.pending(),
+    aborted: async (muffin: Muffin) => await transactions.aborted(),
   },
 }
 
@@ -57,6 +66,10 @@ export default async function commandInterpreter(
   command: string,
   muffin: Muffin
 ) {
+  if (!command) {
+    return
+  }
+
   const identifiers = command.split(' ')
 
   try {

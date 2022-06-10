@@ -55,7 +55,7 @@ export default class Transaction
     from: AddressReference,
     to: AddressReference,
     total: number,
-    data: '',
+    data: string,
     signature: AddressReference,
     recovery: number,
     muffin: Muffin,

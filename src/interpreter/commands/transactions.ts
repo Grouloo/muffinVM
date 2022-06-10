@@ -1,7 +1,7 @@
 import chalk from 'chalk'
 import inquirer from 'inquirer'
 import BackendAdapter from '../../adapters/BackendAdapter'
-import { createAccount, signMessage } from '../../common'
+import { composeMessage, createAccount, signMessage } from '../../common'
 import createBlockchain from '../../common/createBlockchain'
 import hash from '../../common/hash'
 import syncBlockchain from '../../common/syncBlockchain'
@@ -30,23 +30,87 @@ async function create(muffin: Muffin) {
 
   const { address: from } = createAccount(entries.privateKey)
 
-  const fees = entries.total * 0.01
-  const amount = entries.total - fees
+  const { nonce } = await BackendAdapter.instance
+    .useWorldState()
+    .read('accounts', from)
+
+  const total = parseFloat(entries.total)
+
+  const fees = total * 0.01
+  const amount = total - fees
 
   const timestamp = new Date()
 
-  const { signature, recovery } = await signMessage(
-    entries.privateKey,
-    hash(
-      `${from}${entries.to}${amount}${fees}${entries.total}${timestamp}`
-    ).slice(2) as AddressReference
-  )
+  const message = composeMessage(amount, nonce, '')
+
+  const { signature, recovery } = await signMessage(entries.privateKey, message)
 
   const tx = await Transaction.generate(
     from as AddressReference,
     entries.to,
-    entries.total,
+    total,
     '',
+    signature,
+    recovery,
+    muffin,
+    timestamp
+  )
+
+  console.log(chalk.green('Transaction created!'))
+
+  console.log(`Transaction hash: ${tx.hash}`)
+
+  return
+}
+
+async function toContract(muffin: Muffin) {
+  const entries = await inquirer.prompt([
+    {
+      name: 'to',
+      type: 'INPUT',
+      message: 'Receiver:',
+    },
+    {
+      name: 'total',
+      type: 'INPUT',
+      message: 'Total FLT:',
+    },
+    {
+      name: 'data',
+      type: 'INPUT',
+      message: 'Data:',
+    },
+    {
+      name: 'privateKey',
+      type: 'INPUT',
+      message: 'Private key:',
+    },
+  ])
+
+  const { address: from } = createAccount(entries.privateKey)
+
+  const { nonce } = await BackendAdapter.instance
+    .useWorldState()
+    .read('accounts', from)
+
+  const total = parseFloat(entries.total)
+
+  const fees = total * 0.01
+  const amount = total - fees
+
+  const data = entries.data
+
+  const timestamp = new Date()
+
+  const message = composeMessage(amount, nonce, data)
+
+  const { signature, recovery } = await signMessage(entries.privateKey, message)
+
+  const tx = await Transaction.generate(
+    from as AddressReference,
+    entries.to,
+    total,
+    data,
     signature,
     recovery,
     muffin,
@@ -78,4 +142,34 @@ async function read() {
   return
 }
 
-export default { create, read }
+async function done() {
+  const transactions = await BackendAdapter.instance
+    .useWorldState()
+    .find('transactions', 'status', 'done', 'asc')
+
+  console.log(transactions)
+
+  return
+}
+
+async function pending() {
+  const transactions = await BackendAdapter.instance
+    .useWorldState()
+    .find('transactions', 'status', 'pending', 'asc')
+
+  console.log(transactions)
+
+  return
+}
+
+async function aborted() {
+  const transactions = await BackendAdapter.instance
+    .useWorldState()
+    .find('transactions', 'status', 'aborted', 'asc')
+
+  console.log(transactions)
+
+  return
+}
+
+export default { create, toContract, read, done, pending, aborted }

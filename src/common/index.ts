@@ -8,6 +8,7 @@ import signMessage from './signMessage'
 import toHex from './toHex'
 import toUint8Array from './toUint8Array'
 import verifySignature from './verifySignature'
+import delay from './delay'
 
 export {
   composeMessage,
@@ -20,4 +21,5 @@ export {
   toHex,
   toUint8Array,
   verifySignature,
+  delay,
 }

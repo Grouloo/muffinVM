@@ -5,6 +5,7 @@ import { createAccount, signMessage } from '../../common'
 import createBlockchain from '../../common/createBlockchain'
 import syncBlockchain from '../../common/syncBlockchain'
 import Block from '../../models/Block'
+import Blockchain from '../../models/Blockchain'
 import { AddressReference } from '../../models/References'
 import { Muffin } from '../../models/State'
 
@@ -67,20 +68,17 @@ async function snap(muffin: Muffin) {
   return
 }
 
-async function sync() {
-  const entries = await inquirer.prompt([
-    {
-      name: 'node',
-      type: 'INPUT',
-      message: 'Other node address:',
-    },
-  ])
+async function sync(muffin: Muffin) {
+  // Syncing VM
+  let { currentBlockHash, meta }: Blockchain = await BackendAdapter.instance
+    .useWorldState()
+    .read('blockchain', 'blockchain')
 
-  const blockchain = await syncBlockchain(entries.receiverAddress)
+  console.log(chalk.yellow('Synchronizing...'))
 
-  console.log(blockchain)
+  await muffin.net.broadcast('syncRequest', meta.blocksCount - 1)
 
-  console.log(chalk.green('Blockchain initialized.'))
+  console.log(chalk.green('Blockchain synchronized.'))
 
   return
 }
@@ -105,4 +103,4 @@ async function latestBlock() {
   return console.log(block)
 }
 
-export default { init, snap, meta, latestBlock }
+export default { init, snap, sync, meta, latestBlock }

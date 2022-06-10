@@ -83,15 +83,19 @@ export default class LevelAdapter {
   }
 
   read = async (collection: collectionType, key: string) => {
-    const value = await this.collections[collection].get(key, {
-      valueEncoding: 'utf8',
-    })
+    try {
+      const value = await this.collections[collection].get(key, {
+        valueEncoding: 'utf8',
+      })
 
-    const parsedValue = JSON.parse(value)
+      const parsedValue = JSON.parse(value)
 
-    return COLLECTIONS[collection].instantiate(
-      parsedValue
-    ) as typeof parsedValue
+      return COLLECTIONS[collection].instantiate(
+        parsedValue
+      ) as typeof parsedValue
+    } catch (e) {
+      return undefined
+    }
   }
 
   update = async (
@@ -124,13 +128,21 @@ export default class LevelAdapter {
     value: any,
     sort?: 'asc' | 'desc'
   ): Promise<any[]> => {
-    const values: any[] = await (
-      await this.collections[collection].iterator().all()
-    ).filter((doc: any) => !!(doc[field] == value))
+    const values = []
 
-    values.map((obj: any, index: number) => {
+    for await (const [key, doc] of await this.collections[collection]
+      .iterator()
+      .all()) {
+      const parsedDoc = JSON.parse(doc)
+
+      if (parsedDoc[field] == value) {
+        values.push(parsedDoc)
+      }
+    }
+
+    /*values.map((obj: any, index: number) => {
       values[index] = COLLECTIONS[collection].instantiate(obj)
-    })
+    })*/
 
     if (sort) {
       return this.sort(values, sort)
@@ -147,20 +159,24 @@ export default class LevelAdapter {
     // Sublevels instances don't support filter and find
     // So we have to use .all() first
     // This is not efficient!
-    const values: any[] = await (
-      await this.collections[collection].iterator().all()
-    ).filter((doc: any) => {
+    const values = []
+
+    for await (const [key, doc] of await this.collections[collection]
+      .iterator()
+      .all()) {
+      const parsedDoc = JSON.parse(doc)
+
       switch (q[1]) {
         case '>':
-          return !!(doc[q[0]] > q[2])
+          if (parsedDoc[q[0]] > q[2]) values.push(parsedDoc)
         case '<':
-          return !!(doc[q[0]] < q[2])
+          if (parsedDoc[q[0]] < q[2]) values.push(parsedDoc)
       }
-    })
+    }
 
-    values.map((obj: any, index: number) => {
+    /*values.map((obj: any, index: number) => {
       values[index] = COLLECTIONS[collection].instantiate(obj)
-    })
+    })*/
 
     if (sort) {
       return this.sort(values, sort)

@@ -36,13 +36,21 @@ export default class Block extends BaseObject implements BlockType {
   hash: AddressReference
   parentHash: string
   transactions: Transaction[]
-  volume: number = 0
-  fees: number = 0
+  volume: number
+  fees: number
   signature?: AddressReference
   recovery?: number
 
   constructor(data: BlockType) {
     super(data)
+
+    if (!data.fees) {
+      this.fees = 0
+    }
+
+    if (!data.volume) {
+      this.volume = 0
+    }
 
     if (data.timestamp) {
       this.timestamp = data.timestamp
@@ -57,7 +65,7 @@ export default class Block extends BaseObject implements BlockType {
 
   static generate = async (address: AddressReference) => {
     // Validators must process oldest transactions first
-    const transactions = await BackendAdapter.instance
+    let transactions = await BackendAdapter.instance
       .useWorldState()
       .find('transactions', 'status', 'pending', 'asc')
 
@@ -66,7 +74,7 @@ export default class Block extends BaseObject implements BlockType {
       .read('blockchain', 'blockchain')
 
     // Maximum of transactions that can be put in a block cannot be above the number of accounts
-    transactions.slice(0, blockchain.meta.eoaCount - 1)
+    transactions = transactions.slice(0, blockchain.meta.eoaCount + 1)
 
     const timestamp = new Date()
     const parentHash = blockchain.currentBlockHash
@@ -119,35 +127,56 @@ export default class Block extends BaseObject implements BlockType {
     )
 
     // Generating state hash
-    this.hash = hash(JSON.stringify(this.transactions))
+    if (!this.hash) {
+      this.hash = hash(JSON.stringify(this.transactions))
+    }
 
-    this.transactions.map(async (tx, index) => {
-      try {
-        const internalTransactions = await executeTransaction(
-          tx,
-          previousStateHash,
-          index,
-          false
-        )
+    await Promise.all(
+      this.transactions.map(async (tx, index) => {
+        try {
+          const transaction = Transaction.instantiate(tx)
 
-        if (internalTransactions) {
-          tx.internalTransactions = internalTransactions
+          // We don't execute the reward here
+          if (transaction.from == ('' as AddressReference)) {
+            return
+          }
+
+          const internalTransactions = await executeTransaction(
+            transaction,
+            previousStateHash,
+            index,
+            false
+          )
+
+          if (internalTransactions) {
+            transaction.internalTransactions = internalTransactions
+          }
+
+          transaction.status = 'done'
+          transaction.order = index
+
+          this.volume += transaction.total
+          this.fees += transaction.fees
+
+          await BackendAdapter.instance
+            .useWorldState()
+            .create('transactions', transaction.hash, transaction)
+
+          transactionsBash.push(transaction._toJSON())
+        } catch (e) {
+          const transaction = Transaction.instantiate(tx)
+
+          transaction.status = 'aborted'
+          transaction.abortReason = (e as Error).message
+
+          await BackendAdapter.instance
+            .useWorldState()
+            .create('transactions', transaction.hash, transaction)
+
+          transactionsBash.push(transaction._toJSON())
         }
-
-        tx.status = 'done'
-        tx.order = index
-
-        this.volume += tx.total
-        this.fees += tx.fees
-
-        transactionsBash.push(tx)
-      } catch (e) {
-        tx.status = 'aborted'
-        tx.abortReason = (e as Error).message
-
-        transactionsBash.push(tx)
-      }
-    })
+      })
+    )
 
     // Getting validator's account once again
     // May have been modified during block execution
@@ -166,6 +195,8 @@ export default class Block extends BaseObject implements BlockType {
       data: '',
     })
     transactionsBash.push(reward)
+
+    // Paying the reward
     validatorAccount.balance += this.fees
 
     this.transactions = transactionsBash
@@ -180,57 +211,62 @@ export default class Block extends BaseObject implements BlockType {
       .useWorldState()
       .create('blocks', this.hash, this)
 
-    // Updating chain's metadata
-    blockchain.currentBlockHash = this.hash
-    blockchain.meta.blocksCount += 1
-    blockchain.meta.averageBlockVolume =
-      (blockchain.meta.averageBlockVolume + this.volume) /
-      blockchain.meta.blocksCount
-
-    BackendAdapter.instance
-      .useWorldState()
-      .update('blockchain', 'blockchain', blockchain)
-
     return { transactionsBash, blockchain }
   }
 
-  confirm = async (previousStateHash: AddressReference) => {
+  confirm = async (previousStateHash: AddressReference): Promise<boolean> => {
     const { currentBlockHash, meta } = await BackendAdapter.instance
       .useWorldState()
       .read('blockchain', 'blockchain')
 
     const validator = await BackendAdapter.instance
-      .useState(previousStateHash)
+      .useWorldState()
       .read('accounts', this.validatedBy)
 
     if (this.parentHash != currentBlockHash) {
       this.status = 'refused'
       this.reason = 'Bad chain.'
-      BackendAdapter.instance.useWorldState().update('blocks', this.hash, this)
+      await BackendAdapter.instance
+        .useWorldState()
+        .create('blocks', this.hash, this)
 
       return false
     }
 
     // BlocksCount is blockHeight + 1
     // Here we want to check that the blockheight is correct for the new block
-    if (this.blockHeight != meta.blocksCount + 2) {
+    if (this.blockHeight != meta.blocksCount) {
       // If the block is late, it is set to "refused"
-      if (this.blockHeight > meta.blocksCount + 2) {
+      if (this.blockHeight > meta.blocksCount) {
         this.status = 'refused'
         this.reason = 'Late block.'
-        BackendAdapter.instance
+        await BackendAdapter.instance
           .useWorldState()
-          .update('blocks', this.hash, this)
+          .create('blocks', this.hash, this)
+
+        return false
       }
+
+      this.status = 'refused'
+      this.reason = 'Wrong height.'
+      await BackendAdapter.instance
+        .useWorldState()
+        .create('blocks', this.hash, this)
 
       return false
     }
 
     // Block must be signed
-    if (!this.validatedBy || !this.signature || !this.recovery) {
+    if (
+      !this.validatedBy ||
+      !this.signature ||
+      typeof this.recovery != 'number'
+    ) {
       this.status = 'refused'
       this.reason = 'Not signed.'
-      BackendAdapter.instance.useWorldState().update('blocks', this.hash, this)
+      await BackendAdapter.instance
+        .useWorldState()
+        .create('blocks', this.hash, this)
       return false
     }
 
@@ -242,8 +278,10 @@ export default class Block extends BaseObject implements BlockType {
     )
     if (recoveredAddress != this.validatedBy) {
       this.status = 'refused'
-      this.reason = 'Bad signature.'
-      BackendAdapter.instance.useWorldState().update('blocks', this.hash, this)
+      this.reason = `Bad signature. Got ${recoveredAddress}`
+      await BackendAdapter.instance
+        .useWorldState()
+        .create('blocks', this.hash, this)
       return false
     }
 
@@ -260,21 +298,46 @@ export default class Block extends BaseObject implements BlockType {
           registeredTransaction &&
           registeredTransaction.status != 'pending'
         ) {
+          this.status = 'refused'
+          this.reason = 'A transaction has already been processed.'
+          await BackendAdapter.instance
+            .useWorldState()
+            .create('blocks', this.hash, this)
           return false
         }
       })
     )
 
     try {
-      await this.executeBlock(previousStateHash, validator)
+      const { blockchain } = await this.executeBlock(
+        previousStateHash,
+        validator
+      )
+
+      // Updating chain's metadata
+      blockchain.currentBlockHash = this.hash
+      blockchain.meta.blocksCount += 1
+      blockchain.meta.averageBlockVolume =
+        (blockchain.meta.averageBlockVolume + this.volume) /
+        blockchain.meta.blocksCount
+
+      await BackendAdapter.instance
+        .useWorldState()
+        .update('blockchain', 'blockchain', blockchain)
 
       this.status = 'accepted'
-      BackendAdapter.instance.useWorldState().update('blocks', this.hash, this)
+      await BackendAdapter.instance
+        .useWorldState()
+        .create('blocks', this.hash, this)
+
       return true
     } catch (e) {
       this.status = 'refused'
       this.reason = (e as Error).message
-      BackendAdapter.instance.useWorldState().update('blocks', this.hash, this)
+      await BackendAdapter.instance
+        .useWorldState()
+        .create('blocks', this.hash, this)
+
       return false
     }
   }

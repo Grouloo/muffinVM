@@ -1,8 +1,6 @@
 import BackendAdapter from './adapters/BackendAdapter'
 import run from './console'
-import getmac from 'getmac'
-import hash from './common/hash'
-import { Network, AnonymousAuth, Message } from 'ataraxia'
+import { Network, AnonymousAuth, Message, Node } from 'ataraxia'
 import { TCPTransport, TCPPeerMDNSDiscovery } from 'ataraxia-tcp'
 import {
   Services,
@@ -20,9 +18,13 @@ import chalk from 'chalk'
 import Blockchain from './models/Blockchain'
 import Block from './models/Block'
 import Account from './models/Account'
+import delay from './common/delay'
+import { isExpectedValidator, processBlock, updateStakes } from './consensus'
 import me from './me.json'
 
 const argv = minimist(process.argv.slice(2))
+
+let synced = false
 
 const booting = async () => {
   console.log(chalk.yellow('Loading...'))
@@ -51,157 +53,83 @@ const booting = async () => {
     if (msg.type == 'blocks') {
       const block: Block = Block.instantiate(msg.data)
 
-      if (block.status != 'pending') {
+      await processBlock(block, me, muffin)
+    }
+
+    // Responding to a sync request
+    // by sending all missing blocks of source node
+    if (msg.type == 'syncRequest') {
+      if (msg.source.id == net.networkId) {
         return
       }
 
-      BackendAdapter.instance
+      const blockHeight = msg.data
+
+      const blocks = await BackendAdapter.instance
         .useWorldState()
-        .create('blocks', block.hash, block)
+        .query('blocks', ['blockHeight', '>', blockHeight], 'asc')
 
-      const { contract }: Account = await BackendAdapter.instance
-        .useWorldState()
-        .read('accounts', '0x0')
+      msg.source.send('syncResponse', blocks)
+    }
 
-      if (!contract) {
-        return
-      }
+    if (msg.type == 'syncResponse') {
+      const blocks = msg.data
 
-      const { stakes } = contract.storage
+      await Promise.all(
+        blocks.map(async (snapshot: any) => {
+          const block = Block.instantiate(snapshot)
 
-      // The expected validator is the one with the higher stake
-      const expectedValidator = Object.keys(stakes).reduce((a, b) =>
-        stakes[a] > stakes[b] ? a : b
+          if (block.parentHash != currentBlockHash) {
+            return
+          }
+
+          if (block.status != 'accepted') {
+            return
+          }
+
+          const isValid = await block.confirm(
+            block.parentHash as AddressReference
+          )
+
+          // Updating stakes and finding next validator
+          const nextValidator = await updateStakes(block.validatedBy, isValid)
+
+          let updatedChain: Blockchain = await BackendAdapter.instance
+            .useWorldState()
+            .read('blockchain', 'blockchain')
+
+          currentBlockHash = updatedChain.currentBlockHash
+          meta = updatedChain.meta
+        })
       )
 
-      if (block.validatedBy !== expectedValidator) {
-        return
-      }
-
-      const { currentBlockHash, meta } = await BackendAdapter.instance
-        .useWorldState()
-        .read('blockchain', 'blockchain')
-
-      const isValid = await block.confirm(currentBlockHash)
-
-      // Punishing the validator if needed
-      if (!isValid) {
-        contract.storage.balances[block.validatedBy] -= 1
-      }
-
-      // Resetting validator blocks count
-      contract.storage.blocks[block.validatedBy] = 0
-
-      // Updating validator's stake
-      contract.storage.stakes[block.validatedBy] = 0
-
-      // Updating everyone's stake
-      Object.keys(contract.storage.blocks).map((owner: any) => {
-        if (owner == block.validatedBy) {
-          return
-        }
-
-        const passedBlocks = contract.storage.blocks[owner] + 1
-        contract.storage.blocks[owner] = passedBlocks
-
-        contract.storage.stakes[owner] =
-          passedBlocks * contract.storage.balances[owner]
-      })
-
-      // Updating contract storage
-      await BackendAdapter.instance
-        .useWorldState()
-        .update('accounts', '0x0', { contract })
-
-      // If the registered address is chosen, we submit a block
-      const nextValidator = Object.keys(contract.storage.stakes).reduce(
-        (a, b) =>
-          contract.storage.stakes[a] > contract.storage.stakes[b] ? a : b
-      )
-
-      if (me.address == nextValidator) {
-        const newBlock = await Block.generate(me.address as AddressReference)
-
-        const { signature, recovery } = await signMessage(
-          me.privateKey as AddressReference,
-          newBlock.hash
-        )
-
-        newBlock.signature = signature
-        newBlock.recovery = recovery
-
-        // Broadcasting to the network
-        muffin.net.broadcast('blocks', newBlock._toJSON())
-
-        // Storing in DB
-        BackendAdapter.instance
-          .useWorldState()
-          .create('blocks', newBlock.hash, newBlock)
-      }
+      /*console.log(
+        chalk.green(`Blockchain synced to height ${meta.blocksCount - 1}`)
+      )*/
     }
   })
 
-  // Sync service declaration
-  const SyncService = new ServiceContract().describeMethod(
-    'sync' as unknown as never,
-    {
-      returnType: stringType,
-      parameters: [
-        {
-          name: 'blockHeight',
-          type: numberType,
-        },
-      ],
-    } as unknown as never
-  )
+  // Join the network
+  await net.join()
 
-  // Syncing service
-  services.register(
-    'sync',
-    SyncService.implement({
-      async sync(blockHeight: number) {
-        const blocks = await BackendAdapter.instance
-          .useWorldState()
-          .query('blocks', ['blockHeight', '>', blockHeight], 'asc')
-
-        return blocks
-      },
-    })
-  )
+  // Join the services on top of the network
+  await services.join()
 
   // Syncing VM
   let { currentBlockHash, meta }: Blockchain = await BackendAdapter.instance
     .useWorldState()
     .read('blockchain', 'blockchain')
 
-  const syncService = services.get('sync')
-  if (syncService.available) {
-    const blocks: Block[] = (await syncService.call(
-      'sync',
-      meta.blocksCount + 1
-    )) as unknown as Block[]
+  await net.onNodeAvailable(async (node: Node) => {
+    if (synced) {
+      return
+    }
 
-    blocks.map(async (block: Block) => {
-      if (block.parentHash != currentBlockHash) {
-        return
-      }
+    // console.log(chalk.yellow('Synchronizing blockchain...'))
 
-      await block.confirm(block.parentHash as AddressReference)
-
-      let updatedChain: Blockchain = await BackendAdapter.instance
-        .useWorldState()
-        .read('blockchain', 'blockchain')
-
-      currentBlockHash = updatedChain.currentBlockHash
-      meta = updatedChain.meta
-    })
-  }
-
-  // Join the network
-  net.join()
-
-  // Join the services on top of the network
-  services.join()
+    await net.broadcast('syncRequest', meta.blocksCount - 1)
+    synced = true
+  })
 
   const muffin: Muffin = { net, services }
 

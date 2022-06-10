@@ -12,7 +12,11 @@ export default function verifySignature(
   message: string,
   recovery: number
 ) {
-  const publicKey = secp.recoverPublicKey(message.slice(2), signature, recovery)
+  const publicKey = secp.recoverPublicKey(
+    message.slice(2),
+    signature.slice(2),
+    recovery
+  )
 
   const parsedPublicKey = Buffer.from(publicKey).toString('hex').slice(2)
 

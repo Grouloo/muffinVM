@@ -1,9 +1,14 @@
+import { AddressReference } from '../models/References'
+import hash from './hash'
+
 export default function composeMessage(
   amount: number,
   nonce: number,
   data: string
-): string {
-  const message: string = amount.toString() + nonce.toString() + data
+): AddressReference {
+  const message: string = `${amount}${nonce}${data}`
 
-  return message
+  const hashed = hash(message)
+
+  return hashed
 }
