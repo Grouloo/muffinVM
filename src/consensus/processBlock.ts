@@ -10,12 +10,9 @@ import updateStakes from './updateStakes'
 export default async function processBlock(
   block: Block,
   me: any,
-  muffin: Muffin
+  muffin: Muffin,
+  syncing: boolean = false
 ) {
-  if (block.status != 'pending') {
-    return
-  }
-
   await BackendAdapter.instance
     .useWorldState()
     .create('blocks', block.hash, block)
@@ -47,7 +44,7 @@ export default async function processBlock(
 
   // If the node is chosen as validator
   // We create and send a block
-  if (me.address == nextValidator) {
+  if (me.address == nextValidator && !syncing) {
     // Processing empty blocks is considered as bad practice on muffin
     // So, we check every 10s if there are pending transactions
     while (true) {

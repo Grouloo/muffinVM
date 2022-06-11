@@ -1,4 +1,5 @@
 import hash from 'fast-sha256'
+import calculateFees from './calculateFees'
 import composeMessage from './composeMessage'
 import createAccount from './createAccount'
 import createBlockchain from './createBlockchain'
@@ -11,6 +12,7 @@ import verifySignature from './verifySignature'
 import delay from './delay'
 
 export {
+  calculateFees,
   composeMessage,
   createAccount,
   createBlockchain,

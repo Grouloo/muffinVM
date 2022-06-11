@@ -18,58 +18,63 @@ export default async function executeApp(
 
   // Account has to ben an executable contract
   if (account.isOwned) {
-    throw 'Not executable.'
+    throw Error('Not executable.')
   }
 
   if (!account.contract) {
-    throw 'Missing informations.'
+    throw Error('Missing informations.')
   }
 
-  console.log(chalk.yellow(`Running ${account.contract.className}`))
-
-  const makeTransaction = (to: muffin.address, amount: number) => {
-    tx.push({ from: receiverAddress, to, amount, fees: 0, total: amount })
-  }
-
-  const context: {
-    storage: { [x: string]: any }
-    tx: any[]
-    'muffin-utils': any
-    res: any
-    require?: any
-    module?: any
-    console?: any
-  } = {
-    storage: {
-      ...account.contract.storage,
-      msg: { sender: senderAddress, amount, makeTransaction },
-    },
-    tx: [],
-    res: undefined,
-    'muffin-utils': muffin,
-    require,
-    module,
-    // console,
-  }
-
-  let params = ''
-  args.map((arg: any, index: number) => {
-    params += /^\d+$/.test(arg) ? parseFloat(arg) : `"${arg}"`
-
-    if (index != args.length - 1) {
-      params += ','
+  //console.log(chalk.yellow(`Running ${account.contract.className}`))
+  try {
+    const makeTransaction = (to: muffin.address, amount: number) => {
+      tx.push({ from: receiverAddress, to, amount, fees: 0, total: amount })
     }
-  })
 
-  const script = `(function(exports){${account.contract.script} \n const app = new ${account.contract.className}(storage);\n res = app.${method}(${params});\n storage = app._toJSON();}(module.exports));`
+    const context: {
+      storage: { [x: string]: any }
+      tx: any[]
+      'muffin-utils': any
+      res: any
+      require?: any
+      module?: any
+      console?: any
+    } = {
+      storage: {
+        ...account.contract.storage,
+        msg: { sender: senderAddress, amount, makeTransaction },
+      },
+      tx: [],
+      res: undefined,
+      'muffin-utils': muffin,
+      require,
+      module,
+      // console,
+    }
 
-  const executableScript = new vm.Script(script)
+    let params = ''
+    args.map((arg: any, index: number) => {
+      params += /^\d+$/.test(arg) ? parseFloat(arg) : `"${arg}"`
 
-  vm.createContext(context)
+      if (index != args.length - 1) {
+        params += ','
+      }
+    })
 
-  executableScript.runInContext(context)
+    const script = `(function(exports){${account.contract.script} \n const app = new ${account.contract.className}(storage);\n res = app.${method}(${params});\n storage = app._toJSON();}(module.exports));`
 
-  const { storage, res, tx } = context
+    const executableScript = new vm.Script(script)
 
-  return { storage, res, tx }
+    vm.createContext(context)
+
+    await executableScript.runInContext(context)
+
+    const { storage, res, tx } = context
+
+    return { storage, res, tx }
+  } catch (e) {
+    throw Error(
+      `${account.contract.className}.${method}: ${(e as Error).message}`
+    )
+  }
 }

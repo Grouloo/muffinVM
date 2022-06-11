@@ -1,6 +1,7 @@
 import sha256 from 'fast-sha256'
 import util from 'tweetnacl-util'
 import BackendAdapter from '../adapters/BackendAdapter'
+import { calculateFees } from '../common'
 import hash from '../common/hash'
 import BaseObject from './BaseObject'
 import { AddressReference } from './References'
@@ -29,7 +30,7 @@ export default class Transaction
 {
   hash: AddressReference = '0x0'
   order?: number
-  timestamp: Date = new Date()
+  timestamp: Date
   signature?: AddressReference
   recovery?: number
   from: AddressReference
@@ -44,6 +45,11 @@ export default class Transaction
 
   constructor(data: TransactionInterface) {
     super(data)
+
+    if (!data.timestamp) {
+      this.timestamp = new Date()
+    }
+
     this.calculateHash()
   }
 
@@ -61,8 +67,8 @@ export default class Transaction
     muffin: Muffin,
     timestamp: Date = new Date()
   ) => {
-    const fees = total * 0.01
-    const amount = total - fees
+    const amount = total / 1.01
+    const fees = calculateFees(amount, 0.01)
 
     const txHash = hash(
       `${from}${to}${amount}${fees}${total}${data}${timestamp}`
@@ -94,7 +100,7 @@ export default class Transaction
   calculateHash = (): string => {
     const summedData: string = `${this.from}${this.to}${this.amount}${
       this.fees
-    }${this.total}${JSON.stringify(this.data)}`
+    }${this.total}${this.data}${new Date(this.timestamp)}`
 
     const decodedSummedData: Uint8Array = util.decodeUTF8(summedData)
 

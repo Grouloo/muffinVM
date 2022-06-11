@@ -36,8 +36,7 @@ async function create(muffin: Muffin) {
 
   const total = parseFloat(entries.total)
 
-  const fees = total * 0.01
-  const amount = total - fees
+  const amount = total / 1.01
 
   const timestamp = new Date()
 
@@ -95,8 +94,7 @@ async function toContract(muffin: Muffin) {
 
   const total = parseFloat(entries.total)
 
-  const fees = total * 0.01
-  const amount = total - fees
+  const amount = total / 1.01
 
   const data = entries.data
 

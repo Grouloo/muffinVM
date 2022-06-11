@@ -37,7 +37,7 @@ class StackedFloat extends App implements ERC20 {
   // Events
   #Transfer = (from: address, to: address, value: number) => {
     if (value > this.balances[from]) {
-      throw 'Not enough funds.'
+      throw Error('Not enough funds.')
     }
 
     this.balances[from] -= value
@@ -87,11 +87,11 @@ class StackedFloat extends App implements ERC20 {
 
   transferFrom = (from: address, to: address, value: number) => {
     if (!this.allowed[from] || !this.allowed[from][this.msg.sender]) {
-      throw 'Not allowed.'
+      throw Error('Not allowed.')
     }
 
     if (value > this.allowed[from][this.msg.sender]) {
-      throw 'Amount unallowed.'
+      throw Error('Amount unallowed.')
     }
 
     this.allowed[from][this.msg.sender] -= value
@@ -104,7 +104,7 @@ class StackedFloat extends App implements ERC20 {
       !this.balances[this.msg.sender] ||
       value > this.balances[this.msg.sender]
     ) {
-      throw 'Not enough funds.'
+      throw Error('Not enough funds.')
     }
 
     this.#Approval(this.msg.sender, spender, value)
@@ -121,11 +121,11 @@ class StackedFloat extends App implements ERC20 {
   // Minting
   mint = (account: address, amount: number) => {
     if (this.msg.amount < amount * 1000) {
-      throw 'Not enough funds. A StackedFloat costs 1000 FLT.'
+      throw Error('Not enough funds. A StackedFloat costs 1000 FLT.')
     }
 
     if (this.msg.amount > amount * 1000) {
-      throw 'Too much funds. Be careful when making transactions!'
+      throw Error('Too much funds. Be careful when making transactions!')
     }
 
     if (!this.balances[account]) {
@@ -140,7 +140,7 @@ class StackedFloat extends App implements ERC20 {
   // Burning
   burn = (account: address, amount: number) => {
     if (this.balances[account] < amount) {
-      throw 'Balance insufficient.'
+      throw Error('Balance insufficient.')
     }
 
     this.tokenTotalSupply -= amount

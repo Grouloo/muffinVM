@@ -53,6 +53,10 @@ const booting = async () => {
     if (msg.type == 'blocks') {
       const block: Block = Block.instantiate(msg.data)
 
+      if (block.status != 'pending') {
+        return
+      }
+
       await processBlock(block, me, muffin)
     }
 
@@ -75,33 +79,28 @@ const booting = async () => {
     if (msg.type == 'syncResponse') {
       const blocks = msg.data
 
-      await Promise.all(
-        blocks.map(async (snapshot: any) => {
-          const block = Block.instantiate(snapshot)
+      for (let snapshot of blocks) {
+        const block = Block.instantiate(snapshot)
 
-          if (block.parentHash != currentBlockHash) {
-            return
-          }
+        console.log(currentBlockHash)
 
-          if (block.status != 'accepted') {
-            return
-          }
+        if (block.parentHash != currentBlockHash) {
+          return
+        }
 
-          const isValid = await block.confirm(
-            block.parentHash as AddressReference
-          )
+        if (block.status != 'accepted') {
+          return
+        }
 
-          // Updating stakes and finding next validator
-          const nextValidator = await updateStakes(block.validatedBy, isValid)
+        await processBlock(block, me, muffin, true)
 
-          let updatedChain: Blockchain = await BackendAdapter.instance
-            .useWorldState()
-            .read('blockchain', 'blockchain')
+        let updatedChain: Blockchain = await BackendAdapter.instance
+          .useWorldState()
+          .read('blockchain', 'blockchain')
 
-          currentBlockHash = updatedChain.currentBlockHash
-          meta = updatedChain.meta
-        })
-      )
+        currentBlockHash = updatedChain.currentBlockHash
+        meta = updatedChain.meta
+      }
 
       /*console.log(
         chalk.green(`Blockchain synced to height ${meta.blocksCount - 1}`)

@@ -7,6 +7,7 @@ export interface ContractType {
   language: 'javascript'
   className: string
   script: string
+  size: number
   storage: { [x: string]: any }
 }
 
@@ -55,25 +56,29 @@ export default class Account extends BaseObject {
   }
 
   add = (value: number): number => {
-    if (value < 0) {
-      throw 'Value must be positive.'
+    const parsedValue = parseFloat(value as any)
+
+    if (parsedValue < 0) {
+      throw Error('Value must be positive.')
     }
 
-    this.balance += value
+    this.balance += parsedValue
 
     return this.balance
   }
 
   withdraw = (value: number): number => {
-    if (value < 0) {
+    const parsedValue = parseFloat(value as any)
+
+    if (parsedValue < 0) {
       throw 'Value must be positive.'
     }
 
-    if (this.balance < value) {
-      throw 'Balance insufficient.'
+    if (this.balance < parsedValue) {
+      throw Error('Balance insufficient.')
     }
 
-    this.balance -= value
+    this.balance -= parsedValue
 
     return this.balance
   }

@@ -41,6 +41,7 @@ export default async function createBlockchain(
       language: 'javascript',
       className: 'StackedFloat',
       script: stackScript,
+      size: stackScript.length,
       storage: {
         balances: { [receiverAddress]: 1 },
         blocks: { [receiverAddress]: 1 },
@@ -58,7 +59,7 @@ export default async function createBlockchain(
     validatedBy: '0x0',
     parentHash: '0x0',
     transactions: [firstTransaction],
-    volume: 6000,
+    volume: 5000,
     signature: '0x0',
     recovery: 0,
   })
@@ -71,7 +72,7 @@ export default async function createBlockchain(
     idealSupplyPerAccount: 6000,
     idealSupply: 6000,
     totalSupply: 6000,
-    averageBlockVolume: 6000,
+    averageBlockVolume: 5000,
     blocksCount: 1,
   }
 

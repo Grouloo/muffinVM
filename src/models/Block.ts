@@ -1,7 +1,7 @@
 import sha256 from 'fast-sha256'
 import util from 'tweetnacl-util'
 import BackendAdapter from '../adapters/BackendAdapter'
-import { signMessage, verifySignature } from '../common'
+import { calculateFees, signMessage, verifySignature } from '../common'
 import executeTransaction from '../common/executeTransaction'
 import hash from '../common/hash'
 import Account from './Account'
@@ -131,6 +131,10 @@ export default class Block extends BaseObject implements BlockType {
       this.hash = hash(JSON.stringify(this.transactions))
     }
 
+    // Resetting counters
+    this.volume = 0
+    this.fees = 0
+
     await Promise.all(
       this.transactions.map(async (tx, index) => {
         try {
@@ -139,6 +143,13 @@ export default class Block extends BaseObject implements BlockType {
           // We don't execute the reward here
           if (transaction.from == ('' as AddressReference)) {
             return
+          }
+
+          // Veryfing fees
+          if (transaction.fees != calculateFees(transaction.amount, 0.01)) {
+            throw Error(
+              'Fees not paid! Fees represent 1% of transactions and are at least 1 FLT'
+            )
           }
 
           const internalTransactions = await executeTransaction(
@@ -289,7 +300,14 @@ export default class Block extends BaseObject implements BlockType {
     // and if is not pending
     // then the block shouldn't include it.
     await Promise.all(
-      this.transactions.map(async (element: Transaction) => {
+      this.transactions.map(async (element: Transaction, index: number) => {
+        if (
+          (element.from as string) == '' &&
+          index == this.transactions.length - 1
+        ) {
+          return
+        }
+
         const registeredTransaction = await BackendAdapter.instance
           .useWorldState()
           .read('transactions', element.hash)

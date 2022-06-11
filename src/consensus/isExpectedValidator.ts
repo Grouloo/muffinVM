@@ -18,7 +18,8 @@ async function isExpectedValidatorLate(
   currentBlockDate: Date,
   iteration: number
 ): Promise<boolean> {
-  console.log(iteration)
+  // console.log(iteration)
+
   if (currentBlockDate > new Date()) {
     return false
   }
@@ -32,9 +33,23 @@ async function isExpectedValidatorLate(
 
   const pendingTxs = await BackendAdapter.instance
     .useWorldState()
-    .find('transactions', 'status', 'pending')
+    .find('transactions', 'status', 'pending', 'asc')
 
   if (pendingTxs.length == 0) {
+    return false
+  }
+
+  // If the oldest transaction was made after this iteration's timeframe
+  // the validator isn't considered late
+  if (
+    pendingTxs[0] &&
+    new Date(pendingTxs[0].timestamp) >
+      new Date(
+        previousBlockDate.setSeconds(
+          previousBlockDate.getSeconds() + 30 * iteration
+        )
+      )
+  ) {
     return false
   }
 

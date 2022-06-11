@@ -77,8 +77,14 @@ export default async function executeTransaction(
       sender.withdraw(transaction.total)
       receiver.add(transaction.amount)
 
-      const [method, params] = transaction.data.split('(')
+      if (!transaction.data) {
+        throw Error("Missing data. Must be '[methodName](arg1, arg2, ...)'")
+      }
+      const [method, params] = transaction.data.split(/[()]/)
 
+      if (!params) {
+        throw Error("Bad data. Must be '[methodName](arg1, arg2, ...)'")
+      }
       const args = params.split(',')
 
       try {
@@ -125,16 +131,27 @@ export default async function executeTransaction(
 
         contract.storage = storage
 
+        // Updating sender's nonce
+        sender.nonce += 1
+
+        // Saving edited accounts
+        await BackendAdapter.instance
+          .useWorldState()
+          .update('accounts', sender.address, sender)
+
         // Saving new storage content
         await BackendAdapter.instance
           .useWorldState()
-          .update('accounts', receiver.address, { contract })
+          .update('accounts', receiver.address, {
+            balance: receiver.balance,
+            contract,
+          })
 
         return internalTransactions.filter(function (element) {
           return element !== undefined
         }) as Transaction[]
       } catch (e) {
-        throw 'Internal App Error.'
+        throw Error(`Internal App Error.\n ${(e as Error).message}`)
       }
     } else {
       try {
