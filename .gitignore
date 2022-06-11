@@ -7,3 +7,4 @@ lib
 ./pawnee
 ./src/me.json
 src/me.json
+.DS_STORE
