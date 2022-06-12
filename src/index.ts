@@ -82,13 +82,9 @@ const booting = async () => {
       for (let snapshot of blocks) {
         const block = Block.instantiate(snapshot)
 
-        console.log(currentBlockHash)
+        // console.log(currentBlockHash)
 
         if (block.parentHash != currentBlockHash) {
-          return
-        }
-
-        if (block.status != 'accepted') {
           return
         }
 

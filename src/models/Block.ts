@@ -119,12 +119,6 @@ export default class Block extends BaseObject implements BlockType {
   ) => {
     const previousState = BackendAdapter.instance.useState(previousStateHash)
     let transactionsBash: Transaction[] = []
-    let index = transactionsBash.length
-
-    const blockchain: Blockchain = await previousState.read(
-      'blockchain',
-      'blockchain'
-    )
 
     // Generating state hash
     if (!this.hash) {
@@ -135,59 +129,60 @@ export default class Block extends BaseObject implements BlockType {
     this.volume = 0
     this.fees = 0
 
-    await Promise.all(
-      this.transactions.map(async (tx, index) => {
-        try {
-          const transaction = Transaction.instantiate(tx)
+    let index = 0
+    for (let tx of this.transactions) {
+      try {
+        const transaction = Transaction.instantiate(tx)
 
-          // We don't execute the reward here
-          if (transaction.from == ('' as AddressReference)) {
-            return
-          }
-
-          // Veryfing fees
-          if (transaction.fees != calculateFees(transaction.amount, 0.01)) {
-            throw Error(
-              'Fees not paid! Fees represent 1% of transactions and are at least 1 FLT'
-            )
-          }
-
-          const internalTransactions = await executeTransaction(
-            transaction,
-            previousStateHash,
-            index,
-            false
-          )
-
-          if (internalTransactions) {
-            transaction.internalTransactions = internalTransactions
-          }
-
-          transaction.status = 'done'
-          transaction.order = index
-
-          this.volume += transaction.total
-          this.fees += transaction.fees
-
-          await BackendAdapter.instance
-            .useWorldState()
-            .create('transactions', transaction.hash, transaction)
-
-          transactionsBash.push(transaction._toJSON())
-        } catch (e) {
-          const transaction = Transaction.instantiate(tx)
-
-          transaction.status = 'aborted'
-          transaction.abortReason = (e as Error).message
-
-          await BackendAdapter.instance
-            .useWorldState()
-            .create('transactions', transaction.hash, transaction)
-
-          transactionsBash.push(transaction._toJSON())
+        // We don't execute the reward here
+        if (transaction.from == ('' as AddressReference)) {
+          continue
         }
-      })
-    )
+
+        // Veryfing fees
+        if (transaction.fees != calculateFees(transaction.amount, 0.01)) {
+          throw Error(
+            'Fees not paid! Fees represent 1% of transactions and are at least 1 FLT'
+          )
+        }
+
+        const internalTransactions = await executeTransaction(
+          transaction,
+          previousStateHash,
+          index,
+          false
+        )
+
+        if (internalTransactions) {
+          transaction.internalTransactions = internalTransactions
+        }
+
+        transaction.status = 'done'
+        transaction.order = index
+
+        this.volume += transaction.total
+        this.fees += transaction.fees
+
+        await BackendAdapter.instance
+          .useWorldState()
+          .create('transactions', transaction.hash, transaction)
+
+        transactionsBash.push(transaction._toJSON())
+      } catch (e) {
+        const transaction = Transaction.instantiate(tx)
+
+        transaction.status = 'aborted'
+        transaction.abortReason = (e as Error).message
+
+        await BackendAdapter.instance
+          .useWorldState()
+          .create('transactions', transaction.hash, transaction)
+
+        transactionsBash.push(transaction._toJSON())
+      }
+
+      index++
+    }
 
     // Getting validator's account once again
     // May have been modified during block execution
@@ -221,6 +216,11 @@ export default class Block extends BaseObject implements BlockType {
     await BackendAdapter.instance
       .useWorldState()
       .create('blocks', this.hash, this)
+
+    const blockchain: Blockchain = await previousState.read(
+      'blockchain',
+      'blockchain'
+    )
 
     return { transactionsBash, blockchain }
   }

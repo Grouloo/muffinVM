@@ -26,7 +26,7 @@ async function isExpectedValidatorLate(
 
   if (
     (currentBlockDate.getTime() - previousBlockDate.getTime()) / 1000 <
-    30 * iteration
+    30 * iteration - 5
   ) {
     return false
   }
@@ -41,12 +41,13 @@ async function isExpectedValidatorLate(
 
   // If the oldest transaction was made after this iteration's timeframe
   // the validator isn't considered late
+  // NOTE: We add a 5s tolerance
   if (
     pendingTxs[0] &&
     new Date(pendingTxs[0].timestamp) >
       new Date(
         previousBlockDate.setSeconds(
-          previousBlockDate.getSeconds() + 30 * iteration
+          previousBlockDate.getSeconds() + (30 * iteration - 5)
         )
       )
   ) {
@@ -71,7 +72,7 @@ export default async function isExpectedValidator(
     .read('accounts', '0x0')
 
   if (!contract) {
-    throw '0x0 storage not found! Try resetting your storage!'
+    throw Error('0x0 storage not found! Try resetting your storage!')
   }
 
   const previousBlock: Block = await BackendAdapter.instance

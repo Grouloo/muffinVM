@@ -31,8 +31,16 @@ export default async function executeTransaction(
 
       // Updating metadata
       blockchain.meta.eoaCount += 1
-      blockchain.meta.idealSupply =
-        blockchain.meta.eoaCount * blockchain.meta.idealSupplyPerAccount
+
+      // Not relevant anymore
+      // We'll use Muffin IDs instead
+      //blockchain.meta.idealSupply =
+      //blockchain.meta.eoaCount * blockchain.meta.idealSupplyPerAccount
+
+      // Saving blockchain meta in state
+      await BackendAdapter.instance
+        .useWorldState()
+        .update('blockchain', 'blockchain', { meta: blockchain.meta })
 
       // Saving account in state
       await BackendAdapter.instance
