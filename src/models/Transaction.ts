@@ -5,7 +5,7 @@ import { calculateFees } from '../common'
 import hash from '../common/hash'
 import BaseObject from './BaseObject'
 import { AddressReference } from './References'
-import { Muffin } from './State'
+import Muffin from './Muffin'
 
 export interface TransactionInterface {
   hash?: AddressReference

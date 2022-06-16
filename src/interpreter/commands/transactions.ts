@@ -6,7 +6,7 @@ import createBlockchain from '../../common/createBlockchain'
 import hash from '../../common/hash'
 import syncBlockchain from '../../common/syncBlockchain'
 import { AddressReference } from '../../models/References'
-import { Muffin } from '../../models/State'
+import Muffin from '../../models/Muffin'
 import Transaction from '../../models/Transaction'
 
 async function create(muffin: Muffin) {
@@ -38,9 +38,17 @@ async function create(muffin: Muffin) {
 
   const amount = total / 1.01
 
+  const fees = total - amount
+
   const timestamp = new Date()
 
-  const message = composeMessage(amount, nonce, '')
+  const message = await composeMessage({
+    amount,
+    nonce,
+    fees,
+    to: entries.to,
+    data: '',
+  })
 
   const { signature, recovery } = await signMessage(entries.privateKey, message)
 
@@ -96,11 +104,19 @@ async function toContract(muffin: Muffin) {
 
   const amount = total / 1.01
 
+  const fees = total - amount
+
   const data = entries.data
 
   const timestamp = new Date()
 
-  const message = composeMessage(amount, nonce, data)
+  const message = await composeMessage({
+    amount,
+    nonce,
+    data,
+    fees,
+    to: entries.to,
+  })
 
   const { signature, recovery } = await signMessage(entries.privateKey, message)
 

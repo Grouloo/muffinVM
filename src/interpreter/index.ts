@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import { Muffin } from '../models/State'
+import Muffin from '../models/Muffin'
 import account from './commands/accounts'
 import blockchain from './commands/blockchain'
 import blocks from './commands/blocks'

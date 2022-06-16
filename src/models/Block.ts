@@ -299,32 +299,31 @@ export default class Block extends BaseObject implements BlockType {
     // If the transaction is already registered in the DB,
     // and if is not pending
     // then the block shouldn't include it.
-    await Promise.all(
-      this.transactions.map(async (element: Transaction, index: number) => {
-        if (
-          (element.from as string) == '' &&
-          index == this.transactions.length - 1
-        ) {
-          return
-        }
+    let index = 0
+    for (let element of this.transactions) {
+      if (
+        (element.from as string) == '' &&
+        index == this.transactions.length - 1
+      ) {
+        index++
+        continue
+      }
 
-        const registeredTransaction = await BackendAdapter.instance
+      const registeredTransaction = await BackendAdapter.instance
+        .useWorldState()
+        .read('transactions', element.hash)
+
+      if (registeredTransaction && registeredTransaction.status != 'pending') {
+        this.status = 'refused'
+        this.reason = 'A transaction has already been processed.'
+        await BackendAdapter.instance
           .useWorldState()
-          .read('transactions', element.hash)
+          .create('blocks', this.hash, this)
+        return false
+      }
 
-        if (
-          registeredTransaction &&
-          registeredTransaction.status != 'pending'
-        ) {
-          this.status = 'refused'
-          this.reason = 'A transaction has already been processed.'
-          await BackendAdapter.instance
-            .useWorldState()
-            .create('blocks', this.hash, this)
-          return false
-        }
-      })
-    )
+      index++
+    }
 
     try {
       const { blockchain } = await this.executeBlock(

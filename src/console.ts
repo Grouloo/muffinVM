@@ -4,9 +4,7 @@ import inquirer from 'inquirer'
 import chalk from 'chalk'
 import figlet from 'figlet'
 import interpreter from './interpreter'
-import getmac from 'getmac'
-import hash from './common/hash'
-import { Muffin } from './models/State'
+import Muffin from './models/Muffin'
 
 const init = (muffin: Muffin) => {
   console.log(

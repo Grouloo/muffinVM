@@ -7,7 +7,7 @@ import syncBlockchain from '../../common/syncBlockchain'
 import Block from '../../models/Block'
 import Blockchain from '../../models/Blockchain'
 import { AddressReference } from '../../models/References'
-import { Muffin } from '../../models/State'
+import Muffin from '../../models/Muffin'
 
 async function init(path: string) {
   const entries = await inquirer.prompt([

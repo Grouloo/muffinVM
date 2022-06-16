@@ -1,12 +1,5 @@
-import chalk from 'chalk'
 import inquirer from 'inquirer'
 import BackendAdapter from '../../adapters/BackendAdapter'
-import { createAccount, signMessage } from '../../common'
-import createBlockchain from '../../common/createBlockchain'
-import syncBlockchain from '../../common/syncBlockchain'
-import Block from '../../models/Block'
-import { AddressReference } from '../../models/References'
-import { Muffin } from '../../models/State'
 
 async function read() {
   const entries = await inquirer.prompt([

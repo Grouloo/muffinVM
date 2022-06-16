@@ -7,7 +7,7 @@ import hash from '../../common/hash'
 import syncBlockchain from '../../common/syncBlockchain'
 import Block from '../../models/Block'
 import { AddressReference } from '../../models/References'
-import { Muffin } from '../../models/State'
+import Muffin from '../../models/Muffin'
 import Transaction from '../../models/Transaction'
 
 async function start(muffin: Muffin) {

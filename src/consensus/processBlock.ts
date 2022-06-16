@@ -3,7 +3,7 @@ import { signMessage, delay } from '../common'
 import Account from '../models/Account'
 import Block from '../models/Block'
 import { AddressReference } from '../models/References'
-import { Muffin } from '../models/State'
+import Muffin from '../models/Muffin'
 import isExpectedValidator from './isExpectedValidator'
 import updateStakes from './updateStakes'
 

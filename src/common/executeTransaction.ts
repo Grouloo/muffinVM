@@ -48,11 +48,13 @@ export default async function executeTransaction(
         .create('accounts', transaction.to, receiver)
     }
 
-    const message = composeMessage(
-      transaction.amount,
-      sender.nonce,
-      transaction.data
-    )
+    const message = await composeMessage({
+      to: transaction.to,
+      amount: transaction.amount,
+      fees: transaction.fees,
+      nonce: sender.nonce,
+      data: transaction.data,
+    })
 
     if (
       !executeInternalTransactions &&

@@ -48,8 +48,3 @@ export interface Meta {
   averageBlockVolume: number
   blocksCount: number
 }
-
-export interface Muffin {
-  net: Network<any>
-  services: Services
-}

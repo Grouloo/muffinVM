@@ -2,24 +2,18 @@ import BackendAdapter from './adapters/BackendAdapter'
 import run from './console'
 import { Network, AnonymousAuth, Message, Node } from 'ataraxia'
 import { TCPTransport, TCPPeerMDNSDiscovery } from 'ataraxia-tcp'
-import {
-  Services,
-  ServiceContract,
-  stringType,
-  numberType,
-} from 'ataraxia-services'
+import { Services } from 'ataraxia-services'
 import minimist from 'minimist'
-import { Muffin } from './models/State'
+import Muffin from './models/Muffin'
 import Transaction from './models/Transaction'
-import { createBlockchain, signMessage, verifySignature } from './common'
+import { createBlockchain } from './common'
 import genesis from './genesis.json'
 import { AddressReference } from './models/References'
 import chalk from 'chalk'
 import Blockchain from './models/Blockchain'
 import Block from './models/Block'
-import Account from './models/Account'
-import delay from './common/delay'
-import { isExpectedValidator, processBlock, updateStakes } from './consensus'
+import { processBlock } from './consensus'
+import launchApi from './api'
 import me from './me.json'
 
 const argv = minimist(process.argv.slice(2))
@@ -126,7 +120,10 @@ const booting = async () => {
     synced = true
   })
 
-  const muffin: Muffin = { net, services }
+  const muffin: Muffin = new Muffin({ net, services })
+
+  // Launching APIs
+  launchApi(argv.port)
 
   run(muffin)
 }
