@@ -1,4 +1,4 @@
-import hash from 'fast-sha256'
+import hash from './hash'
 import b10toHex from './b10toHex'
 import calculateFees from './calculateFees'
 import composeMessage from './composeMessage'

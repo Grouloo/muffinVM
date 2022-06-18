@@ -5,7 +5,8 @@ export class App {
   msg: msg = {
     sender: '0x',
     amount: 0,
-    makeTransaction: (to: address, total: number) => undefined,
+    makeTransaction: (to: address, total: number, data: string = '') =>
+      undefined,
   }
 
   constructor(data: any) {

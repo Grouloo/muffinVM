@@ -1,6 +1,7 @@
 import chalk from 'chalk'
 import Muffin from '../models/Muffin'
 import account from './commands/accounts'
+import benchmark from './commands/benchmark'
 import blockchain from './commands/blockchain'
 import blocks from './commands/blocks'
 import bonds from './commands/bonds'
@@ -25,6 +26,7 @@ export const commands: {
     generate: async (muffin: Muffin) => account.generatePrivateKey(),
     balance: async (muffin: Muffin) => await account.balance(),
   },
+  benchmark: async (muffin: Muffin) => await benchmark(),
   blockchain: {
     init: async (muffin: Muffin) => await blockchain.init(''),
     snap: async (muffin: Muffin) => await blockchain.snap(muffin),

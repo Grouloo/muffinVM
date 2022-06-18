@@ -14,7 +14,7 @@ import Blockchain from './models/Blockchain'
 import Block from './models/Block'
 import { processBlock } from './consensus'
 import launchApi from './api'
-import me from './me.json'
+import me from '../me.json'
 
 const argv = minimist(process.argv.slice(2))
 
