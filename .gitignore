@@ -8,4 +8,5 @@ lib
 pawnee
 ./src/me.json
 src/me.json
+me.json
 .DS_STORE
