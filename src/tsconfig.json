@@ -2,7 +2,7 @@
   "compilerOptions": {
     /* Language and Environment */
     "target": "es2015",
-    "outDir": "./lib",
+    "outDir": "../lib",
 
     /* Modules */
     "module": "commonjs" /* Specify what module code is generated. */,
@@ -10,16 +10,18 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
 
+    "isolatedModules": true,
+
     /* Type Checking */
     "strict": true,
     "skipLibCheck": true,
     "strictPropertyInitialization": false,
-    "allowJs": true,
-    // Generate d.ts files
-    "declaration": true,
     "resolveJsonModule": true
   },
-  "rootDir": "./src",
-  "exclude": ["node_modules", "lib"],
-  "include": ["./src", "./test", "./*", "./config", "types"]
+  "references": [
+    // this is how we declare a dependency from
+    { "path": "../" } // this project to the one at the root dir`
+  ],
+  "exclude": ["../node_modules", "../lib", "../me.json"],
+  "include": [".", "../types"]
 }

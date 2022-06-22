@@ -120,6 +120,10 @@ export default class Block extends BaseObject implements BlockType {
     const previousState = BackendAdapter.instance.useState(previousStateHash)
     let transactionsBash: Transaction[] = []
 
+    const { meta }: Blockchain = await BackendAdapter.instance
+      .useWorldState()
+      .read('blockchain', 'blockchain')
+
     // Generating state hash
     if (!this.hash) {
       this.hash = hash(JSON.stringify(this.transactions))
@@ -139,11 +143,25 @@ export default class Block extends BaseObject implements BlockType {
           continue
         }
 
-        // Veryfing fees
-        if (transaction.fees != calculateFees(transaction.amount, 0.01)) {
-          throw Error(
-            'Fees not paid! Fees represent 1% of transactions and are at least 1 FLT'
+        // Verifying fees
+        if (transaction.to == null) {
+          const { script } = JSON.parse(transaction.data)
+
+          const expectedFees = calculateFees(
+            transaction.amount,
+            meta.taxRate,
+            script
           )
+
+          if (transaction.fees != expectedFees) {
+            throw Error(`Fees not paid! Expected ${expectedFees} FLT`)
+          }
+        } else {
+          const expectedFees = calculateFees(transaction.amount, meta.taxRate)
+
+          if (transaction.fees != expectedFees) {
+            throw Error(`Fees not paid! Expected ${expectedFees} FLT`)
+          }
         }
 
         const internalTransactions = await executeTransaction(

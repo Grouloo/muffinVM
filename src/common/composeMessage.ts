@@ -14,7 +14,7 @@ import hash from './hash'
 export default async function composeMessage(tx: {
   nonce: number
   fees: number
-  to: AddressReference
+  to: AddressReference | null
   amount: number
   data: string
 }): Promise<AddressReference> {
@@ -29,7 +29,14 @@ export default async function composeMessage(tx: {
   const gasPrice = 1
   const gasLimit = floatToWei(tx.fees)
 
-  // console.log({ gasPrice, gasLimit })
+  /*console.log({
+    nonce: tx.nonce,
+    gasPrice,
+    gasLimit,
+    to: tx.to,
+    value,
+    data: tx.data,
+  })*/
 
   const message = encodeRLP([
     tx.nonce,

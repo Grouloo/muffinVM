@@ -23,7 +23,10 @@ export default function encodeRLP(values: any[], withLength: boolean = true) {
 
   values.map((value) => {
     let parsedValue
-    if (typeof value == 'number') {
+
+    if (value == null || value == NaN) {
+      parsedValue = ''
+    } else if (typeof value == 'number') {
       if (value <= 0) {
         parsedValue = ''
       } else {
@@ -53,6 +56,7 @@ export default function encodeRLP(values: any[], withLength: boolean = true) {
 
     if (size == 129) {
       rlp += `${parsedValue}`
+
       return
     } else {
       rlp += `${parsedSize}${parsedValue}`
@@ -65,9 +69,11 @@ export default function encodeRLP(values: any[], withLength: boolean = true) {
 
     if (rlp.length / 2 < 55) {
       prefix = b10toHex(rlp.length / 2 + 192).slice(2)
+
       rlp = `0x${prefix}${rlp}`
     } else {
       payloadSize = b10toHex(rlp.length / 2).slice(2)
+
       prefix = b10toHex(payloadSize.length / 2 + 247).slice(2)
       rlp = `0x${prefix}${payloadSize}${rlp}`
     }

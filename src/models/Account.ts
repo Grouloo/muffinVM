@@ -49,7 +49,7 @@ export default class Account extends BaseObject {
       .read('accounts', address)
 
     if (!account) {
-      throw "This account doesn't exist."
+      throw Error("This account doesn't exist.")
     }
 
     return account.balance

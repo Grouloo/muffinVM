@@ -5,6 +5,7 @@ import benchmark from './commands/benchmark'
 import blockchain from './commands/blockchain'
 import blocks from './commands/blocks'
 import bonds from './commands/bonds'
+import contracts from './commands/contracts'
 import sign from './commands/sign'
 import network from './commands/network'
 import transactions from './commands/transactions'
@@ -43,6 +44,9 @@ export const commands: {
   },
   bonds: {
     generate: async (muffin: Muffin) => await bonds.generate(),
+  },
+  contracts: {
+    deploy: async (muffin: Muffin) => await contracts.deploy(muffin),
   },
   exit: (muffin: Muffin) => process.exit(),
   help: (muffin: Muffin) => console.log(commands),

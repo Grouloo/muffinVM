@@ -1,22 +1,14 @@
 {
   "compilerOptions": {
-    /* Language and Environment */
-    "target": "es2015",
-    "outDir": "./lib",
-
-    /* Modules */
-    "module": "commonjs" /* Specify what module code is generated. */,
-
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-
-    /* Type Checking */
-    "strict": true,
+    "rootDir": ".",
+    "outDir": ".", // if out path for a file is same as its src path, nothing will be emitted
+    "resolveJsonModule": true,
     "skipLibCheck": true,
-    "strictPropertyInitialization": false,
-    "resolveJsonModule": true
+    "composite": true // required on the dependency project for references to work
   },
-  "rootDir": "./src",
-  "exclude": ["node_modules", "lib"],
-  "include": ["./src", "./test", "./*", "./config", "types"]
+  "files": [
+    // by whitelisting the files to include, TS won't automatically
+    "me.json", // include all source below root, which is the default.
+    "deployment.json"
+  ]
 }

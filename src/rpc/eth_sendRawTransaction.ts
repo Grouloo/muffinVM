@@ -6,11 +6,17 @@ import hash from '../common/hash'
 import Muffin from '../models/Muffin'
 import { AddressReference } from '../models/References'
 import Transaction from '../models/Transaction'
+import Blockchain from '../models/Blockchain'
+import BackendAdapter from '../adapters/BackendAdapter'
 
 export default async function eth_sendRawTransaction([rawData]: [
   AddressReference
 ]) {
   try {
+    const { meta }: Blockchain = await BackendAdapter.instance
+      .useWorldState()
+      .read('blockchain', 'blockchain')
+
     let [prefix, payload] = rawData.split(/f8(.*)/s)
 
     payload = payload.substring(2)
@@ -72,13 +78,13 @@ export default async function eth_sendRawTransaction([rawData]: [
       recovery
     )
 
-    const total = amount + calculateFees(amount, 0.01)
+    // const total = amount + calculateFees(amount, meta.taxRate)
 
     // Generating transaction
     const transaction = await Transaction.generate(
       from,
       to as AddressReference,
-      total,
+      amount,
       data as string,
       signature as AddressReference,
       recovery,

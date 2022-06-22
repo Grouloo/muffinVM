@@ -14,9 +14,16 @@ import Blockchain from './models/Blockchain'
 import Block from './models/Block'
 import { processBlock } from './consensus'
 import launchApi from './api'
-import me from '../me.json'
+
+import meJSON from '../me.json'
+
+let me = meJSON
 
 const argv = minimist(process.argv.slice(2))
+
+if (argv.anonymous) {
+  me = { address: '', privateKey: '' }
+}
 
 let synced = false
 

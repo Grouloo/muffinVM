@@ -1,5 +1,6 @@
 import hash from './hash'
 import b10toHex from './b10toHex'
+import calculateContractAddress from './calculateContractAddress'
 import calculateFees from './calculateFees'
 import composeMessage from './composeMessage'
 import createAccount from './createAccount'
@@ -15,6 +16,7 @@ import delay from './delay'
 
 export {
   b10toHex,
+  calculateContractAddress,
   calculateFees,
   composeMessage,
   createAccount,

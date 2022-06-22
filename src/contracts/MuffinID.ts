@@ -1,4 +1,4 @@
-type address = `0x${string}`
+import { address } from 'muffin-utils'
 
 interface msg {
   sender: address
@@ -50,7 +50,7 @@ class MuffinID implements ERC721Metadata {
 
   constructor() {}
 
-  protected Transfer = (from: address, to: address, tokenId: number): void => {
+  #Transfer = (from: address, to: address, tokenId: number): void => {
     this.owners[tokenId] = to
     delete this.approvals[tokenId]
 
@@ -58,11 +58,7 @@ class MuffinID implements ERC721Metadata {
     this.balances[to] += 1
   }
 
-  protected Approval = (
-    owner: address,
-    approved: address,
-    tokenId: number
-  ): void => {
+  #Approval = (owner: address, approved: address, tokenId: number): void => {
     this.approvals[tokenId] = approved
   }
 
@@ -100,7 +96,7 @@ class MuffinID implements ERC721Metadata {
       throw "Sender's account doesn't own specified token."
     }
 
-    this.Transfer(from, to, tokenId)
+    this.#Transfer(from, to, tokenId)
   }
 
   transferFrom = (from: address, to: address, tokenId: number): void => {
@@ -112,7 +108,7 @@ class MuffinID implements ERC721Metadata {
       throw "Sender doesn't own this token!"
     }
 
-    this.Approval(msg.sender, approved, tokenId)
+    this.#Approval(msg.sender, approved, tokenId)
   }
 
   setApprovalForAll = (operator: address, approved: address) => {

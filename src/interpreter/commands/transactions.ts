@@ -1,13 +1,16 @@
 import chalk from 'chalk'
 import inquirer from 'inquirer'
 import BackendAdapter from '../../adapters/BackendAdapter'
-import { composeMessage, createAccount, signMessage } from '../../common'
-import createBlockchain from '../../common/createBlockchain'
-import hash from '../../common/hash'
-import syncBlockchain from '../../common/syncBlockchain'
+import {
+  calculateFees,
+  composeMessage,
+  createAccount,
+  signMessage,
+} from '../../common'
 import { AddressReference } from '../../models/References'
 import Muffin from '../../models/Muffin'
 import Transaction from '../../models/Transaction'
+import Blockchain from '../../models/Blockchain'
 
 async function create(muffin: Muffin) {
   const entries = await inquirer.prompt([
@@ -17,9 +20,9 @@ async function create(muffin: Muffin) {
       message: 'Receiver:',
     },
     {
-      name: 'total',
+      name: 'amount',
       type: 'INPUT',
-      message: 'Total FLT:',
+      message: 'Amount (in FLT):',
     },
     {
       name: 'privateKey',
@@ -34,11 +37,13 @@ async function create(muffin: Muffin) {
     .useWorldState()
     .read('accounts', from)
 
-  const total = parseFloat(entries.total)
+  const { meta }: Blockchain = await BackendAdapter.instance
+    .useWorldState()
+    .read('blockchain', 'blockchain')
 
-  const amount = total / 1.01
+  const amount = parseFloat(entries.amount)
 
-  const fees = total - amount
+  const fees = calculateFees(amount, meta.taxRate)
 
   const timestamp = new Date()
 
@@ -55,7 +60,7 @@ async function create(muffin: Muffin) {
   const tx = await Transaction.generate(
     from as AddressReference,
     entries.to,
-    total,
+    amount,
     '',
     signature,
     recovery,
@@ -78,9 +83,9 @@ async function toContract(muffin: Muffin) {
       message: 'Receiver:',
     },
     {
-      name: 'total',
+      name: 'amount',
       type: 'INPUT',
-      message: 'Total FLT:',
+      message: 'Amount (in FLT):',
     },
     {
       name: 'data',
@@ -100,11 +105,13 @@ async function toContract(muffin: Muffin) {
     .useWorldState()
     .read('accounts', from)
 
-  const total = parseFloat(entries.total)
+  const { meta }: Blockchain = await BackendAdapter.instance
+    .useWorldState()
+    .read('blockchain', 'blockchain')
 
-  const amount = total / 1.01
+  const amount = parseFloat(entries.amount)
 
-  const fees = total - amount
+  const fees = calculateFees(amount, meta.taxRate)
 
   const data = entries.data
 
@@ -123,7 +130,7 @@ async function toContract(muffin: Muffin) {
   const tx = await Transaction.generate(
     from as AddressReference,
     entries.to,
-    total,
+    amount,
     data,
     signature,
     recovery,

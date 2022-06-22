@@ -1,5 +1,6 @@
-import { executeApp } from '.'
+import { calculateContractAddress, executeApp, hash } from '.'
 import BackendAdapter from '../adapters/BackendAdapter'
+import { encodeRLP } from '../ethereum'
 import Account from '../models/Account'
 import { AddressReference } from '../models/References'
 import Transaction from '../models/Transaction'
@@ -23,10 +24,10 @@ export default async function executeTransaction(
 
     let receiver: Account = await BackendAdapter.instance
       .useWorldState()
-      .read('accounts', transaction.to)
+      .read('accounts', transaction.to || '')
 
     // If the receiver has no account yet, we have to create it
-    if (!receiver) {
+    if (!receiver && transaction.to != null) {
       receiver = Account.create(transaction.to)
 
       // Updating metadata
@@ -49,7 +50,7 @@ export default async function executeTransaction(
     }
 
     const message = await composeMessage({
-      to: transaction.to,
+      to: transaction.to || null,
       amount: transaction.amount,
       fees: transaction.fees,
       nonce: sender.nonce,
@@ -83,7 +84,63 @@ export default async function executeTransaction(
       )
     }
 
-    if (!receiver.isOwned) {
+    // If there is no receiving address specified, then we assume it is a contract registering tx
+    if (!receiver.address || (receiver.address as string) == '') {
+      const { language, className, script } = JSON.parse(transaction.data)
+
+      const size = script.length
+
+      // Computing contract address
+      const address: AddressReference = calculateContractAddress(
+        sender.address,
+        sender.nonce
+      )
+
+      // even it is unlikely, the generated address could aready be used by someone else
+      // So, we have to check that there is no account linked to it
+      const account = await BackendAdapter.instance
+        .useWorldState()
+        .read('accounts', address)
+
+      if (account) {
+        // Updating sender's nonce
+        sender.nonce += 1
+
+        //Saving sender account
+        await BackendAdapter.instance
+          .useWorldState()
+          .update('accounts', sender.address, sender)
+
+        throw Error('The generated address is already used. Please try again.')
+      }
+
+      // Updating sender's nonce
+      sender.nonce += 1
+
+      sender.withdraw(transaction.total)
+
+      // Creating contract
+      const contractAccount = Account.instantiate({
+        address,
+        nonce: 0,
+        isOwned: false,
+        balance: transaction.amount,
+        contract: { size, language, className, script, storage: {} },
+      })
+
+      //Saving sender account
+      await BackendAdapter.instance
+        .useWorldState()
+        .update('accounts', sender.address, sender)
+
+      // Saving contract account
+      await BackendAdapter.instance
+        .useWorldState()
+        .create('accounts', contractAccount.address, contractAccount)
+    }
+
+    // If the receiving account isn't owned, it is a contract
+    else if (!receiver.isOwned) {
       sender.withdraw(transaction.total)
       receiver.add(transaction.amount)
 

@@ -6,6 +6,7 @@ import hash from '../common/hash'
 import BaseObject from './BaseObject'
 import { AddressReference } from './References'
 import Muffin from './Muffin'
+import Blockchain from './Blockchain'
 
 export interface TransactionInterface {
   hash?: AddressReference
@@ -14,7 +15,7 @@ export interface TransactionInterface {
   signature?: AddressReference
   recovery?: number
   from: AddressReference
-  to: AddressReference
+  to: AddressReference | null
   status: 'pending' | 'aborted' | 'done'
   abortReason?: string
   amount: number
@@ -22,6 +23,7 @@ export interface TransactionInterface {
   total: number
   data: string
   internalTransactions?: Transaction[]
+  contractAddress?: AddressReference
 }
 
 export default class Transaction
@@ -34,7 +36,7 @@ export default class Transaction
   signature?: AddressReference
   recovery?: number
   from: AddressReference
-  to: AddressReference
+  to: AddressReference | null
   status: 'pending' | 'aborted' | 'done'
   abortReason?: string
   amount: number
@@ -42,12 +44,25 @@ export default class Transaction
   total: number
   data: string
   internalTransactions?: Transaction[]
+  contractAddress?: AddressReference
 
   constructor(data: TransactionInterface) {
     super(data)
 
     if (!data.timestamp) {
       this.timestamp = new Date()
+    }
+
+    if (typeof this.amount != 'number') {
+      this.amount = parseFloat(this.amount)
+    }
+
+    if (typeof this.fees != 'number') {
+      this.fees = parseFloat(this.fees)
+    }
+
+    if (typeof this.total != 'number') {
+      this.total = parseFloat(this.total)
     }
 
     this.calculateHash()
@@ -59,16 +74,28 @@ export default class Transaction
 
   static generate = async (
     from: AddressReference,
-    to: AddressReference,
-    total: number,
+    to: AddressReference | null,
+    amount: number,
     data: string,
     signature: AddressReference,
     recovery: number,
     muffin: Muffin,
     timestamp: Date = new Date()
   ) => {
-    const amount = total / 1.01
-    const fees = calculateFees(amount, 0.01)
+    const { meta }: Blockchain = await BackendAdapter.instance
+      .useWorldState()
+      .read('blockchain', 'blockchain')
+
+    let fees
+    if (to == null) {
+      const { script } = JSON.parse(data)
+
+      fees = calculateFees(amount, meta.taxRate, script)
+    } else {
+      fees = calculateFees(amount, meta.taxRate)
+    }
+
+    const total = amount + fees
 
     const txHash = hash(
       `${from}${to}${amount}${fees}${total}${data}${timestamp}`

@@ -25,6 +25,13 @@ export default async function createBlockchain(
     recovery: 0,
   })
 
+  const voidAccount = Account.instantiate({
+    nonce: 0,
+    balance: 0,
+    isOwned: true,
+    address: null as unknown as AddressReference,
+  })
+
   const firstAccount = Account.instantiate({
     nonce: 0,
     balance: 5000,
@@ -92,6 +99,11 @@ export default async function createBlockchain(
   await BackendAdapter.instance
     .useState(genesisBlock.hash)
     .create('transactions', firstTransaction.hash, firstTransaction)
+
+  // Saving void account
+  await BackendAdapter.instance
+    .useWorldState()
+    .create('accounts', '', voidAccount)
 
   // Saving account
   await BackendAdapter.instance
