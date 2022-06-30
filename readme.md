@@ -52,5 +52,31 @@ yarn
 Then, launch muffinVM with the following command:
 
 ```bash
-yarn start [--storage PATH_TO_YOUR_STORAGE_FOLDER] [--port PORT_NUMBER]
+yarn start [--storage PATH_TO_YOUR_STORAGE_FOLDER] [--port PORT_NUMBER] [--anonymous]
+```
+
+#### Launching a validating node and an anonymous node
+
+We want to run a validator node, and a node that we will use as an API which will not do any validation.
+
+To launch the validating node, open a terminal and do:
+
+```bash
+cd ./muffinVM
+yarn start
+```
+
+To run the anonymous node, the one that will not do any validation, we will have to use the `--anonymous` flag and to specify another port.
+This flag will tell our node to run without using the content of `me.json`.
+
+muffinVM uses the 8545 port by default. You cannot launch 2 instances of muffinVM on the same port.
+We will have to change the used port with the `--port` option.
+
+We will also have to use another storage folder. While it is theorically possible to run 2 nodes using the same storage, it isn't something safe to do. We can change the storage path with the `--storage` option.
+
+In another terminal:
+
+```bash
+cd ./muffinVM
+yarn start --anonymous --port 3000
 ```

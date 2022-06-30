@@ -9,6 +9,7 @@
   "files": [
     // by whitelisting the files to include, TS won't automatically
     "me.json", // include all source below root, which is the default.
-    "deployment.json"
+    "deployment.json",
+    "genesis.json"
   ]
 }

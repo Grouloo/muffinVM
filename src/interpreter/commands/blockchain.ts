@@ -2,39 +2,10 @@ import chalk from 'chalk'
 import inquirer from 'inquirer'
 import BackendAdapter from '../../adapters/BackendAdapter'
 import { createAccount, signMessage } from '../../common'
-import createBlockchain from '../../common/createBlockchain'
-import syncBlockchain from '../../common/syncBlockchain'
 import Block from '../../models/Block'
 import Blockchain from '../../models/Blockchain'
 import { AddressReference } from '../../models/References'
 import Muffin from '../../models/Muffin'
-
-async function init(path: string) {
-  const entries = await inquirer.prompt([
-    {
-      name: 'chainId',
-      type: 'INPUT',
-      message: 'Chain Id:',
-    },
-    {
-      name: 'receiverAddress',
-      type: 'INPUT',
-      message: 'Receiving address:',
-    },
-  ])
-
-  const blockchain = await createBlockchain(
-    entries.chainId,
-    entries.receiverAddress,
-    ''
-  )
-
-  console.log(blockchain)
-
-  console.log(chalk.green('Blockchain initialized.'))
-
-  return
-}
 
 async function snap(muffin: Muffin) {
   const entries = await inquirer.prompt([
@@ -103,4 +74,4 @@ async function latestBlock() {
   return console.log(block)
 }
 
-export default { init, snap, sync, meta, latestBlock }
+export default { snap, sync, meta, latestBlock }

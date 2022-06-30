@@ -1,5 +1,5 @@
 import { ERC20, address } from '..'
-import { App } from './App'
+import App from './App'
 
 export default class Token extends App implements ERC20 {
   tokenName: string = 'MyToken'

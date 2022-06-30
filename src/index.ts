@@ -7,8 +7,6 @@ import minimist from 'minimist'
 import Muffin from './models/Muffin'
 import Transaction from './models/Transaction'
 import { createBlockchain } from './common'
-import genesis from './genesis.json'
-import { AddressReference } from './models/References'
 import chalk from 'chalk'
 import Blockchain from './models/Blockchain'
 import Block from './models/Block'
@@ -145,22 +143,14 @@ const setup = async () => {
       .read('blockchain', 'blockchain')
 
     if (!blockchain) {
-      blockchain = await createBlockchain(
-        genesis.chainId,
-        genesis.receiverAddress as AddressReference,
-        genesis.stackScript
-      )
+      blockchain = await createBlockchain()
 
       console.log(chalk.green('Genesis block created.'))
     }
 
     return blockchain.meta.chainId
   } catch (e) {
-    const blockchain = await createBlockchain(
-      genesis.chainId,
-      genesis.receiverAddress as AddressReference,
-      genesis.stackScript
-    )
+    const blockchain = await createBlockchain()
 
     console.log(chalk.green('Genesis block created.'))
 

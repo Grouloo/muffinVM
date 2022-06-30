@@ -47,7 +47,7 @@ async function deploy(muffin: Muffin) {
     script,
     className,
     size,
-    language: 'javascript',
+    environment: 'nodejs',
     storage: {},
   }
 

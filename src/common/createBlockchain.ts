@@ -1,29 +1,50 @@
 import BackendAdapter from '../adapters/BackendAdapter'
-import Account from '../models/Account'
+import Account, { ContractType } from '../models/Account'
 import Block from '../models/Block'
 import Blockchain from '../models/Blockchain'
 import { AddressReference } from '../models/References'
 import { Meta } from '../models/State'
-import Transaction from '../models/Transaction'
-import hash from './hash'
+import genesis from '../../genesis.json'
 
-export default async function createBlockchain(
-  chainId: number,
-  receiverAddress: AddressReference,
-  stackScript: string
-): Promise<Blockchain> {
-  const firstTransaction = Transaction.instantiate({
-    order: 1,
-    from: '0x0',
-    to: receiverAddress,
-    status: 'done',
-    amount: 5000,
-    total: 5000,
-    fees: 0,
-    data: '',
-    signature: '0x0',
-    recovery: 0,
-  })
+export default async function createBlockchain(): Promise<Blockchain> {
+  let eoaCount: number = 0
+  let contractsCount: number = 0
+  let totalFloat: number = 0
+
+  await Promise.all(
+    genesis.accounts.map(async (element: any) => {
+      let contract: ContractType | undefined = undefined
+      if (!element.isOwned) {
+        contract = {
+          environment: element.contract.environment,
+          className: element.contract.className,
+          script: element.contract.script,
+          size: element.contract.script.length,
+          storage: element.contract.storage,
+        }
+
+        contractsCount++
+      } else {
+        eoaCount++
+      }
+
+      const account = Account.instantiate({
+        nonce: element.nonce || 0,
+        address: element.address,
+        balance: element.balance,
+        isOwned: element.isOwned || false,
+        contract: contract,
+      })
+
+      totalFloat += account.balance
+
+      // Saving account
+      // Saving void account
+      await BackendAdapter.instance
+        .useWorldState()
+        .create('accounts', element.address, account)
+    })
+  )
 
   const voidAccount = Account.instantiate({
     nonce: 0,
@@ -32,55 +53,29 @@ export default async function createBlockchain(
     address: null as unknown as AddressReference,
   })
 
-  const firstAccount = Account.instantiate({
-    nonce: 0,
-    balance: 5000,
-    isOwned: true,
-    address: receiverAddress,
-  })
-
-  const firstContract = Account.instantiate({
-    nonce: 0,
-    balance: 1000,
-    isOwned: false,
-    address: '0x0',
-    contract: {
-      language: 'javascript',
-      className: 'StackedFloat',
-      script: stackScript,
-      size: stackScript.length,
-      storage: {
-        balances: { [receiverAddress]: 1 },
-        blocks: { [receiverAddress]: 1 },
-        stakes: { [receiverAddress]: 1 },
-        tokenTotalSupply: 1,
-      },
-    },
-  })
-
   const genesisBlock: Block = new Block({
-    hash: '0x0',
+    hash: genesis.blockHash as AddressReference,
     timestamp: new Date(),
     status: 'accepted',
-    blockHeight: 0,
+    blockHeight: genesis.blockHeight,
     validatedBy: '0x0',
     parentHash: '0x0',
-    transactions: [firstTransaction],
-    volume: 5000,
+    transactions: [],
+    volume: 6000,
     signature: '0x0',
     recovery: 0,
   })
 
   const meta: Meta = {
-    chainId: chainId,
-    taxRate: 0.01,
-    eoaCount: 1,
-    contractsCount: 1,
-    idealSupplyPerAccount: 6000,
-    idealSupply: 6000,
-    totalSupply: 6000,
-    averageBlockVolume: 5000,
-    blocksCount: 1,
+    chainId: genesis.chainId,
+    taxRate: genesis.taxRate,
+    eoaCount,
+    contractsCount,
+    idealSupplyPerAccount: totalFloat / eoaCount,
+    idealSupply: totalFloat,
+    totalSupply: totalFloat,
+    averageBlockVolume: totalFloat,
+    blocksCount: genesis.blockHeight + 1,
   }
 
   const blockchain: Blockchain = Blockchain.init(genesisBlock, meta)
@@ -95,25 +90,10 @@ export default async function createBlockchain(
     .useWorldState()
     .create('blocks', genesisBlock.hash, genesisBlock)
 
-  // Saving transaction
-  await BackendAdapter.instance
-    .useState(genesisBlock.hash)
-    .create('transactions', firstTransaction.hash, firstTransaction)
-
   // Saving void account
   await BackendAdapter.instance
     .useWorldState()
     .create('accounts', '', voidAccount)
-
-  // Saving account
-  await BackendAdapter.instance
-    .useWorldState()
-    .create('accounts', firstAccount.address, firstAccount)
-
-  // Saving contract
-  await BackendAdapter.instance
-    .useWorldState()
-    .create('accounts', firstContract.address, firstContract)
 
   return blockchain
 }

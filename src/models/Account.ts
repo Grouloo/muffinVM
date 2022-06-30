@@ -4,7 +4,7 @@ import BaseObject from './BaseObject'
 import { AddressReference } from './References'
 
 export interface ContractType {
-  language: 'javascript'
+  environment: 'nodejs'
   className: string
   script: string
   size: number

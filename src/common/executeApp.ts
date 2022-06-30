@@ -10,7 +10,7 @@ export default async function executeApp(
   receiverAddress: AddressReference,
   amount: number,
   method: string,
-  args: any[]
+  args: string //any[]
 ) {
   const account: Account = await BackendAdapter.instance
     .useWorldState()
@@ -53,15 +53,23 @@ export default async function executeApp(
     }
 
     let params = ''
-    args.map((arg: any, index: number) => {
-      params += /^\d+$/.test(arg) ? parseFloat(arg) : `"${arg}"`
+    /*args.map((arg: any, index: number) => {
+      params += /^\d+$/.test(arg) ? parseFloat(arg) : `'${arg}'`
 
       if (index != args.length - 1) {
         params += ','
       }
-    })
+    })*/
 
-    const script = `(function(exports){${account.contract.script} \n const app = new ${account.contract.className}(storage);\n res = app.${method}(${params});\n storage = app._toJSON();}(module.exports));`
+    const script = `(function(exports){${
+      account.contract.script
+    } \n const app = new ${
+      account.contract.className
+    }(storage);\n res = app.${method}(${
+      args /*params*/
+    });\n storage = app._toJSON();}(module.exports));`
+
+    // console.log(script)
 
     const executableScript = new vm.Script(script)
 

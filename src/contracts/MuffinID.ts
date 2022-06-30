@@ -1,130 +1,109 @@
-import { address } from 'muffin-utils'
+import { App, address, hex, hash, verifySignature } from 'muffin-utils'
 
-interface msg {
-  sender: address
+type email = `${string}@${string}.${string}`
+type url = `https://${string}.${string}`
+
+type tokenField =
+  | 'firstname'
+  | 'middlename'
+  | 'lastname'
+  | 'username'
+  | 'email'
+  | 'picture'
+  | 'birthdate'
+  | 'createdAt'
+
+type muffinIDContent = {
+  firstname: string
+  middlename: string
+  lastname: string
+  username: string
+  email: string
+  picture?: string
+  birthdate: string
+  city?: string
+  country?: string
+  createdAt: Date
 }
 
-const msg: msg = {
-  sender: '0x00',
-}
+type muffinAddress = `mx${string}`
 
-interface ERC721 {
-  ApprovalForAll: (owner: address, operator: address, approved: boolean) => void
-  balanceOf: (owner: address) => number
-  ownerOf: (tokenId: number) => address
-  safeTransferFrom: (
-    from: address,
-    to: address,
-    tokenId: number,
-    data: { [x: string]: any }
-  ) => void
-  transferFrom: (from: address, to: address, tokenId: number) => void
-  approve: (approved: address, tokenId: number) => void
-  setApprovalForAll: (operator: address, approved: address) => void
-  getApproved: (tokenId: number) => address
-  isApprovedForAll: (owner: address, operator: address) => boolean
-  // Minting & burning
-  mint?: (to: address, tokenId: number) => void
-  safeMint?: (to: address, tokenId: number, data?: { [x: string]: any }) => void
-  burn?: (tokenId: address) => void
-  // For enumerable collections
-  totalSupply?: () => number
-  tokenByIndex?: (index: number) => number
-  tokenOfOwnerByIndex?: (owner: address, index: number) => number
-}
-
-interface ERC721Metadata extends ERC721 {
-  name: () => string
-  symbol: () => string
-  tokenURI: (tokenId: number) => string
-}
-
-class MuffinID implements ERC721Metadata {
+class MuffinID extends App {
   tokenName: string = 'Muffin ID'
   tokenSymbol: string = 'MID'
-  tokens: { [tokenId: number]: string } = {}
-  owners: { [tokenId: number]: address } = {}
-  approvals: { [tokenId: number]: address } = {}
-  balances: { [owner: address]: number } = {}
-  supply: number = 1
+  supply: number
 
-  constructor() {}
-
-  #Transfer = (from: address, to: address, tokenId: number): void => {
-    this.owners[tokenId] = to
-    delete this.approvals[tokenId]
-
-    this.balances[from] -= 1
-    this.balances[to] += 1
+  tokens: {
+    [tokenId: muffinAddress]: muffinIDContent
   }
 
-  #Approval = (owner: address, approved: address, tokenId: number): void => {
-    this.approvals[tokenId] = approved
+  owners: { [tokenId: muffinAddress]: address }
+  balances: { [owner: address]: number }
+
+  // Credentials = hash(`${publicKey}${muffinAddress}`)
+  credentials: { [tokenId: muffinAddress]: hex }
+
+  constructor(data: any) {
+    super(data)
+
+    if (!this.supply) {
+      this.supply = 0
+    }
+
+    if (!this.tokens) {
+      this.tokens = {}
+    }
+
+    if (!this.owners) {
+      this.owners = {}
+    }
+
+    if (!this.balances) {
+      this.balances = {}
+    }
+
+    if (!this.credentials) {
+      this.credentials = {}
+    }
   }
 
-  ApprovalForAll = (
-    owner: address,
-    operator: address,
-    approved: boolean
-  ): void => {}
+  #GenerateHash = (token: muffinIDContent): muffinAddress => {
+    const hashed = hash(`${token.firstname}${token.lastname}${token.birthdate}`)
+
+    const slicedHash = hashed.slice(2)
+
+    const muffinAddress: muffinAddress = `mx${slicedHash}`
+
+    return muffinAddress
+  }
+
+  #Authenticate = (
+    muffinAddress: muffinAddress,
+    signature: hex,
+    recovery: 0 | 1
+  ): boolean => {
+    const hashedAddress = hash(muffinAddress)
+    const { publicKey } = verifySignature(signature, hashedAddress, recovery)
+
+    const credential = hash(`${publicKey}${muffinAddress}`)
+
+    if (this.credentials[muffinAddress] != credential) {
+      throw Error('Unauthorized.')
+    }
+
+    return true
+  }
 
   balanceOf = (owner: address): number => {
     return this.balances[owner] || 0
   }
 
-  ownerOf = (tokenId: number): address => {
-    if (tokenId > this.supply) {
-      throw "Specified token doesn't exist."
+  ownerOf = (tokenId: muffinAddress): address => {
+    if (!this.owners[tokenId]) {
+      throw "Specified Muffin ID doesn't exist."
     }
 
     return this.owners[tokenId]
-  }
-
-  safeTransferFrom = (
-    from: address,
-    to: address,
-    tokenId: number,
-    data: { [x: string]: any }
-  ): void => {
-    if (tokenId > this.supply) {
-      throw "Specified token doesn't exist."
-    }
-
-    // In order to transfer a token, the sender have to own the token,
-    // or have the approval of the owner to use it
-    if (this.owners[tokenId] != from && this.approvals[tokenId] != from) {
-      throw "Sender's account doesn't own specified token."
-    }
-
-    this.#Transfer(from, to, tokenId)
-  }
-
-  transferFrom = (from: address, to: address, tokenId: number): void => {
-    throw 'This is an unsafe method. Please use safeTransferFrom.'
-  }
-
-  approve = (approved: address, tokenId: number): void => {
-    if (msg.sender != this.ownerOf(tokenId)) {
-      throw "Sender doesn't own this token!"
-    }
-
-    this.#Approval(msg.sender, approved, tokenId)
-  }
-
-  setApprovalForAll = (operator: address, approved: address) => {
-    throw 'Method not supported'
-  }
-
-  getApproved = (tokenId: number): address => {
-    if (tokenId > this.supply) {
-      throw "Specified token doesn't exist."
-    }
-
-    return this.approvals[tokenId]
-  }
-
-  isApprovedForAll = (owner: address, operator: address): boolean => {
-    throw 'Method not supported.'
   }
 
   name = (): string => {
@@ -135,11 +114,169 @@ class MuffinID implements ERC721Metadata {
     return this.tokenSymbol
   }
 
-  tokenURI = (tokenId: number): string => {
-    if (tokenId > this.supply) {
-      throw "Specified token doesn't exist."
+  field = (tokenId: muffinAddress, field: tokenField): any => {
+    if (!this.tokens[tokenId]) {
+      throw Error("This Muffin ID doesn't exist.")
     }
 
-    return this.tokens[tokenId]
+    if (!(field in this.tokens[tokenId])) {
+      throw Error("This field doesn't exist.")
+    }
+
+    return this.tokens[tokenId][field]
+  }
+
+  getMuffinID = (muffinAddress: muffinAddress) => {
+    return this.tokens[muffinAddress]
+  }
+
+  // Minting
+  mint = (data: any, signature: hex, recovery: 0 | 1) => {
+    // Checking that the price has been paid
+    if (this.msg.amount != 5) {
+      throw Error(
+        'The price for purchasing a Muffin ID is 5 FLT. No more, no less.'
+      )
+    }
+
+    const {
+      firstname,
+      middlename,
+      lastname,
+      username,
+      email,
+      picture,
+      birthdate,
+    } = JSON.parse(data)
+
+    // Verifying data
+    if (!firstname || typeof firstname != 'string') {
+      throw Error('A Muffin ID must have a firstname.')
+    }
+
+    if (!middlename || typeof middlename != 'string') {
+      throw Error('A Muffin ID must have a middlename.')
+    }
+
+    if (!lastname || typeof lastname != 'string') {
+      throw Error('A Muffin ID must have a lastname.')
+    }
+
+    if (!username || typeof username != 'string') {
+      throw Error('A Muffin ID must have a username.')
+    }
+
+    if (!email || typeof email != 'string') {
+      throw Error('A Muffin ID must have an email.')
+    }
+
+    if (!birthdate) {
+      throw Error('A Muffin ID must have a birth date.')
+    }
+
+    const createdAt = new Date()
+
+    const token: muffinIDContent = {
+      firstname,
+      middlename,
+      lastname,
+      username,
+      email,
+      createdAt,
+      picture,
+      birthdate,
+    }
+
+    // Generating hash
+    const tokenHash = this.#GenerateHash(token)
+
+    // We have to check if the Muffin ID doesn't already exist
+    if (this.tokens[tokenHash]) {
+      throw Error('A similar Muffin ID already exists!')
+    }
+
+    // Registering the new Muffin ID
+    this.tokens[tokenHash] = token
+
+    // Generate credentials
+    const { publicKey } = verifySignature(signature, hash(''), recovery)
+    const credential = hash(`${publicKey}${tokenHash}`)
+
+    // Registering credentials
+    this.credentials[tokenHash] = credential
+
+    // Bonding Muffin ID with account address
+    this.owners[tokenHash] = this.msg.sender
+
+    // Updating balane of owner
+    this.balances[this.msg.sender] = 1
+
+    return
+  }
+
+  // Recovering a Muffin ID with a password
+  recover = (muffinAddress: muffinAddress, signature: hex, recovery: 0 | 1) => {
+    if (!muffinAddress) {
+      throw Error('Must specify a Muffin ID address to recover.')
+    }
+
+    if (!signature) {
+      throw Error(
+        'To recover a Muffin ID, the address of the muffin ID must be signed with the private key.'
+      )
+    }
+
+    if (this.balances[this.msg.sender] > 0) {
+      throw Error('A Muffin ID is already linked to this account.')
+    }
+
+    this.#Authenticate(muffinAddress, signature, recovery)
+
+    // Updating balances
+    this.balances[this.owners[muffinAddress]] = 0
+    this.balances[this.msg.sender] = 1
+
+    // Associating the recovered Muffin ID with the new account
+    this.owners[muffinAddress] = this.msg.sender
+  }
+
+  patch = (
+    muffinAddress: muffinAddress,
+    signature: hex,
+    recovery: 0 | 1,
+    data: any
+  ) => {
+    const { username, email, city, country, picture } = data
+
+    const token = this.tokens[muffinAddress]
+
+    if (!token) {
+      throw Error("Specified Muffin ID doesn't exist.")
+    }
+
+    this.#Authenticate(muffinAddress, signature, recovery)
+
+    if (username) {
+      token.username = username
+    }
+
+    if (email) {
+      token.email = email
+    }
+
+    if (city) {
+      token.city = city
+    }
+
+    if (country) {
+      token.country = country
+    }
+
+    if (picture) {
+      token.picture = picture
+    }
+
+    // Saving token
+    this.tokens[muffinAddress] = token
   }
 }

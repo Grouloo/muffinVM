@@ -4,7 +4,7 @@ import toHex from './toHex'
 import * as secp from '@noble/secp256k1'
 
 export default async function signMessage(
-  privateKey: AddressReference,
+  privateKey: string,
   message: AddressReference
 ) {
   const [signatureBuffer, recovery] = await secp.sign(

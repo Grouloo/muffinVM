@@ -1,7 +1,7 @@
 import { address } from '..'
 import { msg } from '../interfaces/msg'
 
-export class App {
+export default class App {
   msg: msg = {
     sender: '0x',
     amount: 0,

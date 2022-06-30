@@ -86,7 +86,7 @@ export default async function executeTransaction(
 
     // If there is no receiving address specified, then we assume it is a contract registering tx
     if (!receiver.address || (receiver.address as string) == '') {
-      const { language, className, script } = JSON.parse(transaction.data)
+      const { environment, className, script } = JSON.parse(transaction.data)
 
       const size = script.length
 
@@ -125,7 +125,7 @@ export default async function executeTransaction(
         nonce: 0,
         isOwned: false,
         balance: transaction.amount,
-        contract: { size, language, className, script, storage: {} },
+        contract: { size, environment, className, script, storage: {} },
       })
 
       //Saving sender account
@@ -152,7 +152,7 @@ export default async function executeTransaction(
       if (!params) {
         throw Error("Bad data. Must be '[methodName](arg1, arg2, ...)'")
       }
-      const args = params.split(',')
+      const args = params // params.split(',')
 
       try {
         const { storage, tx } = await executeApp(

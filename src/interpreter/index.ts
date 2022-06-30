@@ -6,8 +6,9 @@ import blockchain from './commands/blockchain'
 import blocks from './commands/blocks'
 import bonds from './commands/bonds'
 import contracts from './commands/contracts'
-import sign from './commands/sign'
+import muffinID from './commands/muffinID'
 import network from './commands/network'
+import sign from './commands/sign'
 import transactions from './commands/transactions'
 import run from './commands/run'
 
@@ -29,7 +30,6 @@ export const commands: {
   },
   benchmark: async (muffin: Muffin) => await benchmark(),
   blockchain: {
-    init: async (muffin: Muffin) => await blockchain.init(''),
     snap: async (muffin: Muffin) => await blockchain.snap(muffin),
     sync: async (muffin: Muffin) => await blockchain.sync(muffin),
     meta: async (muffin: Muffin) => await blockchain.meta(),
@@ -50,6 +50,12 @@ export const commands: {
   },
   exit: (muffin: Muffin) => process.exit(),
   help: (muffin: Muffin) => console.log(commands),
+  muffinID: {
+    mint: async (muffin: Muffin) => await muffinID.mint(muffin),
+    read: async () => await muffinID.read(),
+    generateKey: async () => await muffinID.generateKey(),
+    decryptField: async () => await muffinID.decryptField(),
+  },
   network: {
     nodes: async (muffin: Muffin) => await network.nodes(muffin),
   },

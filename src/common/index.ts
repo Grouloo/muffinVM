@@ -7,6 +7,7 @@ import createAccount from './createAccount'
 import createBlockchain from './createBlockchain'
 import executeApp from './executeApp'
 import executeTransaction from './executeTransaction'
+import hextoString from './hextoString'
 import signMessage from './signMessage'
 import toDecimal from './toDecimal'
 import toHex from './toHex'
@@ -24,6 +25,7 @@ export {
   executeTransaction,
   executeApp,
   hash,
+  hextoString,
   signMessage,
   toDecimal,
   toHex,
