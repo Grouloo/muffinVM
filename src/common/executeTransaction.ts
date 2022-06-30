@@ -88,6 +88,11 @@ export default async function executeTransaction(
     if (!receiver.address || (receiver.address as string) == '') {
       const { environment, className, script } = JSON.parse(transaction.data)
 
+      // We cannot allow loops in contracts, as they could be infinite or make the processing too long
+      if (/(for|while|map)(\b|)\(/g.test(script)) {
+        throw Error("A contract can't use a loop.")
+      }
+
       const size = script.length
 
       // Computing contract address

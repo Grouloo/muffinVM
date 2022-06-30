@@ -210,6 +210,7 @@ class MuffinID extends App {
 
     // Updating balane of owner
     this.balances[this.msg.sender] = 1
+    this.supply++
 
     return
   }

@@ -84,7 +84,7 @@ const booting = async () => {
         // console.log(currentBlockHash)
 
         if (block.parentHash != currentBlockHash) {
-          return
+          continue
         }
 
         await processBlock(block, me, muffin, true)
@@ -97,9 +97,9 @@ const booting = async () => {
         meta = updatedChain.meta
       }
 
-      /*console.log(
+      console.log(
         chalk.green(`Blockchain synced to height ${meta.blocksCount - 1}`)
-      )*/
+      )
     }
   })
 
@@ -114,15 +114,13 @@ const booting = async () => {
     .useWorldState()
     .read('blockchain', 'blockchain')
 
-  await net.onNodeAvailable(async (node: Node) => {
-    if (synced) {
-      return
+  net.onNodeAvailable(async (node: Node) => {
+    if (!synced) {
+      console.log(chalk.yellow('Synchronizing blockchain...'))
+
+      await net.broadcast('syncRequest', meta.blocksCount - 1)
+      synced = true
     }
-
-    // console.log(chalk.yellow('Synchronizing blockchain...'))
-
-    await net.broadcast('syncRequest', meta.blocksCount - 1)
-    synced = true
   })
 
   const muffin: Muffin = new Muffin({ net, services })

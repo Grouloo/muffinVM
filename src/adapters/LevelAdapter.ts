@@ -169,8 +169,10 @@ export default class LevelAdapter {
       switch (q[1]) {
         case '>':
           if (parsedDoc[q[0]] > q[2]) values.push(parsedDoc)
+          break
         case '<':
           if (parsedDoc[q[0]] < q[2]) values.push(parsedDoc)
+          break
       }
     }
 

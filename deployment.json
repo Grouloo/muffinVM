@@ -1,5 +1,5 @@
 {
-  "language": "javascript",
-  "className": "",
-  "script": ""
+  "environment": "nodejs",
+  "className": "InfiniteLoop",
+  "script": "class InfiniteLoop { \n constructor(){\n this.i= 0;\n } \n loop(){ \n this.i++;\n }\n}"
 }
