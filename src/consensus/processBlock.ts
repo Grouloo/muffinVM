@@ -6,6 +6,7 @@ import { AddressReference } from '../models/References'
 import Muffin from '../models/Muffin'
 import isExpectedValidator from './isExpectedValidator'
 import updateStakes from './updateStakes'
+import createMoney from './createMoney'
 
 export default async function processBlock(
   block: Block,
@@ -41,6 +42,9 @@ export default async function processBlock(
 
   // Updating stakes and finding next validator
   const nextValidator = await updateStakes(block.validatedBy, isValid)
+
+  // Money creation
+  await createMoney()
 
   // If the node is chosen as validator
   // We create and send a block

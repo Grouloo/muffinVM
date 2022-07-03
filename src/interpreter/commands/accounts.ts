@@ -39,7 +39,7 @@ async function read() {
 
   const account: Account = await BackendAdapter.instance
     .useWorldState()
-    .read('accounts', address)
+    .read('accounts', address.toLowerCase())
 
   console.log(account._toJSON())
 
@@ -59,7 +59,7 @@ async function storage() {
 
   const account: Account = await BackendAdapter.instance
     .useWorldState()
-    .read('accounts', address)
+    .read('accounts', address.toLowerCase())
 
   if (account.isOwned) {
     return console.log(chalk.red('Account must be a contract.'))
@@ -115,7 +115,7 @@ async function balance() {
 
   const address = entries.address
 
-  const balance = await Account.getBalance(address)
+  const balance = await Account.getBalance(address.toLowerCase())
 
   console.log(chalk.green(`${balance} FLT`))
 

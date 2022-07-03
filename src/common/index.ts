@@ -10,6 +10,7 @@ import executeTransaction from './executeTransaction'
 import hextoString from './hextoString'
 import signMessage from './signMessage'
 import toDecimal from './toDecimal'
+import toFixedNumber from './toFixedNumber'
 import toHex from './toHex'
 import toUint8Array from './toUint8Array'
 import verifySignature from './verifySignature'
@@ -28,6 +29,7 @@ export {
   hextoString,
   signMessage,
   toDecimal,
+  toFixedNumber,
   toHex,
   toUint8Array,
   verifySignature,

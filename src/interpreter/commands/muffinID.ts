@@ -118,9 +118,9 @@ async function mint(muffin: Muffin) {
     .read('accounts', address)
   const message = await composeMessage({
     nonce: account.nonce,
-    fees: calculateFees(5, 0.01),
+    fees: calculateFees(60, 0.01),
     to: '0x1',
-    amount: 5,
+    amount: 60,
     data,
   })
   const { signature, recovery } = await signMessage(privateKey, message)
@@ -129,7 +129,7 @@ async function mint(muffin: Muffin) {
   const tx = await Transaction.generate(
     address,
     '0x1',
-    5,
+    60,
     data,
     signature,
     recovery,

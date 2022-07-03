@@ -101,6 +101,10 @@ export default class Transaction
       `${from}${to}${amount}${fees}${total}${data}${timestamp}`
     )
 
+    if (to) {
+      to = to.toLowerCase() as AddressReference
+    }
+
     const tx = new this({
       hash: txHash,
       status: 'pending',

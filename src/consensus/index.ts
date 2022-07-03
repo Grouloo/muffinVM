@@ -1,5 +1,6 @@
-import updateStakes from './updateStakes'
+import createMoney from './createMoney'
 import isExpectedValidator from './isExpectedValidator'
 import processBlock from './processBlock'
+import updateStakes from './updateStakes'
 
-export { updateStakes, isExpectedValidator, processBlock }
+export { createMoney, updateStakes, isExpectedValidator, processBlock }

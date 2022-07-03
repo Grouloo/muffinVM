@@ -42,6 +42,7 @@ export interface Meta {
   taxRate: number
   eoaCount: number
   contractsCount: number
+  idCount: number
   idealSupplyPerAccount: number
   idealSupply: number
   totalSupply: number

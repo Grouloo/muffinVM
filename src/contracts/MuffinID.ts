@@ -133,10 +133,8 @@ class MuffinID extends App {
   // Minting
   mint = (data: any, signature: hex, recovery: 0 | 1) => {
     // Checking that the price has been paid
-    if (this.msg.amount != 5) {
-      throw Error(
-        'The price for purchasing a Muffin ID is 5 FLT. No more, no less.'
-      )
+    if (this.msg.amount != 60) {
+      throw Error('The price for purchasing a Muffin ID is 60 FLT.')
     }
 
     const {

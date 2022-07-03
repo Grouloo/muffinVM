@@ -1,3 +1,5 @@
+import toFixedNumber from './toFixedNumber'
+
 export default function calculateFees(
   amount: number,
   rate: number,
@@ -22,9 +24,4 @@ export default function calculateFees(
   const fees = amount * rate
 
   return toFixedNumber(fees, 3)
-}
-
-function toFixedNumber(num: number, digits: number) {
-  var pow = Math.pow(10, digits)
-  return Math.round(num * pow) / pow
 }

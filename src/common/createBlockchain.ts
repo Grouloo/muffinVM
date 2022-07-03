@@ -10,6 +10,7 @@ export default async function createBlockchain(): Promise<Blockchain> {
   let eoaCount: number = 0
   let contractsCount: number = 0
   let totalFloat: number = 0
+  let idCount: number = genesis.idCount
 
   await Promise.all(
     genesis.accounts.map(async (element: any) => {
@@ -71,6 +72,7 @@ export default async function createBlockchain(): Promise<Blockchain> {
     taxRate: genesis.taxRate,
     eoaCount,
     contractsCount,
+    idCount,
     idealSupplyPerAccount: totalFloat / eoaCount,
     idealSupply: totalFloat,
     totalSupply: totalFloat,
