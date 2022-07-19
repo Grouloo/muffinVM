@@ -97,13 +97,17 @@ export default class Transaction
 
     const total = amount + fees
 
-    const txHash = hash(
-      `${from}${to}${amount}${fees}${total}${data}${timestamp}`
-    )
+    if (from) {
+      from = from.toLowerCase() as AddressReference
+    }
 
     if (to) {
       to = to.toLowerCase() as AddressReference
     }
+
+    const txHash = hash(
+      `${from}${to}${amount}${fees}${total}${data}${timestamp}`
+    )
 
     const tx = new this({
       hash: txHash,

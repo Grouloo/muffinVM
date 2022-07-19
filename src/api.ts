@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import bodyParser from 'body-parser'
+import launchRest from './rest'
 import launchRPC from './rpc'
 
 export default function launchApi(port: any) {
@@ -14,6 +15,7 @@ export default function launchApi(port: any) {
     next()
   })*/
 
+  launchRest(app)
   launchRPC(app)
 
   app.listen(port || 8545)
