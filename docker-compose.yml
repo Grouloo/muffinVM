@@ -1,0 +1,10 @@
+services:
+  muffinvm:
+    build: .
+    ports:
+      - '8545:8545'
+      - '8546:8546'
+    volumes:
+      - ./me.json
+      - ./config.json
+      - ./deployment.json

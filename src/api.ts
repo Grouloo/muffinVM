@@ -4,6 +4,8 @@ import bodyParser from 'body-parser'
 import launchRest from './rest'
 import launchRPC from './rpc'
 
+import config from '../config.json'
+
 export default function launchApi(port: any) {
   const app = express()
 
@@ -15,8 +17,13 @@ export default function launchApi(port: any) {
     next()
   })*/
 
-  launchRest(app)
-  launchRPC(app)
+  if (config.services.rest) {
+    launchRest(app)
+  }
+
+  if (config.services.rpc) {
+    launchRPC(app)
+  }
 
   app.listen(port || 8545)
 }

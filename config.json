@@ -1,0 +1,13 @@
+{
+  "network": {
+    "firstPeer": {
+      "host": "185.216.25.188",
+      "port": 8546
+    }
+  },
+  "services": {
+    "rest": false,
+    "rpc": true,
+    "blockchain": true
+  }
+}

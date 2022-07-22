@@ -6,7 +6,10 @@
   "license": "MIT",
   "scripts": {
     "start": "tsc --build src && node lib/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc --build src",
+    "serve": "node lib/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dockerize": "docker build . -t muffinvm --no-cache"
   },
   "dependencies": {
     "@noble/secp256k1": "^1.5.5",

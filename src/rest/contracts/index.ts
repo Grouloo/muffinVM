@@ -1,6 +1,6 @@
 import express from 'express'
 import read from './read'
-import readStorageField from './storage/readField'
+import readStorageField from './readField'
 
 const router = express.Router()
 

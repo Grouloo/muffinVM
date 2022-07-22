@@ -14,6 +14,7 @@ import { processBlock } from './consensus'
 import launchApi from './api'
 
 import meJSON from '../me.json'
+import config from '../config.json'
 
 let me = meJSON
 
@@ -38,7 +39,7 @@ const booting = async () => {
 
   net.onMessage(async (msg: Message<any>) => {
     // Receiving pending transactions
-    if (msg.type == 'transactions') {
+    if (msg.type == 'transactions' && config.services.blockchain) {
       const tx = Transaction.instantiate(msg.data)
 
       if (tx.status != 'pending') {
@@ -49,7 +50,7 @@ const booting = async () => {
     }
 
     // Receiving pending blocks
-    if (msg.type == 'blocks') {
+    if (msg.type == 'blocks' && config.services.blockchain) {
       const block: Block = Block.instantiate(msg.data)
 
       if (block.status != 'pending') {
@@ -61,7 +62,7 @@ const booting = async () => {
 
     // Responding to a sync request
     // by sending all missing blocks of source node
-    if (msg.type == 'syncRequest') {
+    if (msg.type == 'syncRequest' && config.services.blockchain) {
       if (msg.source.id == net.networkId) {
         return
       }
@@ -159,13 +160,21 @@ const setup = async () => {
 const connect = (chainId: number) => {
   const net = new Network({
     name: `muffin${chainId}`,
-    transports: [
-      new TCPTransport({
-        discovery: new TCPPeerMDNSDiscovery(),
-        authentication: [new AnonymousAuth()],
-      }),
-    ],
   })
+
+  const tcp = new TCPTransport({
+    discovery: new TCPPeerMDNSDiscovery(),
+    authentication: [new AnonymousAuth()],
+    port: 8546,
+  })
+
+  // We need to manually add the first peer
+  tcp.addManualPeer({
+    host: config.network.firstPeer.host,
+    port: config.network.firstPeer.port,
+  })
+
+  net.addTransport(tcp)
 
   // @ts-ignore
   const services = new Services(net)
