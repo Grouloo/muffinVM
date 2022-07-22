@@ -1,13 +1,14 @@
 {
   "name": "muffin-utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Utilities used to interact with Muffin Network",
   "main": "./lib/index.js",
   "types": "lib/index.d.ts",
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "push": "yarn version --patch --no-git-tag-version ; yarn publish --access public"
   },
   "dependencies": {
     "@noble/secp256k1": "^1.5.5",

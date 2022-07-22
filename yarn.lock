@@ -454,11 +454,6 @@ base64-js@^1.3.1:
   resolved "https://registry.npmjs.org/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-bcryptjs@^2.4.3:
-  version "2.4.3"
-  resolved "https://registry.npmjs.org/bcryptjs/-/bcryptjs-2.4.3.tgz#9ab5627b93e60621ff7cdac5da9733027df1d0cb"
-  integrity sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==
-
 bl@^4.1.0:
   version "4.1.0"
   resolved "https://registry.npmjs.org/bl/-/bl-4.1.0.tgz#451535264182bec2fbbc83a62ab98cf11d9f7b3a"
@@ -1491,6 +1486,29 @@ ms@2.1.3:
   resolved "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz#574c8138ce1d2b5861f0b44579dbadd60c6615b2"
   integrity sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
 
+muffin-utils@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.npmjs.org/muffin-utils/-/muffin-utils-1.0.1.tgz#f45a6dc951165ce6c1939cabb0798a617fb04a63"
+  integrity sha512-pifCPWgvrWtC6AByMNNHMJe2NZjpSo6r6h4l4IX921U7dmiI3304gxYXMK9a/VHuR+Ax4uqR9KLS+J34niaJxQ==
+  dependencies:
+    "@noble/secp256k1" "^1.5.5"
+    "@types/elliptic" "^6.4.14"
+    "@types/figlet" "^1.5.4"
+    "@types/hdkey" "^2.0.1"
+    "@types/minimist" "^1.2.2"
+    "@types/node" "^17.0.31"
+    "@types/secp256k1" "^4.0.3"
+    chalk "4.1.2"
+    elliptic "^6.5.4"
+    fast-sha256 "^1.3.0"
+    hdkey "^2.0.1"
+    keccak256 "^1.0.6"
+    minimist "^1.2.6"
+    secp256k1 "^4.0.3"
+    sha3 "^2.1.4"
+    tweetnacl-util "^0.15.1"
+    typescript "^4.6.4"
+
 multicast-dns-service-types@^1.1.0:
   version "1.1.0"
   resolved "https://registry.npmjs.org/multicast-dns-service-types/-/multicast-dns-service-types-1.1.0.tgz#899f11d9686e5e05cb91b35d5f0e63b773cfc901"
@@ -1533,11 +1551,6 @@ node-addon-api@^2.0.0:
   version "2.0.2"
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-2.0.2.tgz#432cfa82962ce494b132e9d72a15b29f71ff5d32"
   integrity sha512-Ntyt4AIXyaLIuMHF6IOoTakB3K+RWxwtsHNRxllEoA6vPwP9o4866g6YWDLUdnucilZhmkxiHwHr11gAENw+QA==
-
-node-forge@^1.3.1:
-  version "1.3.1"
-  resolved "https://registry.npmjs.org/node-forge/-/node-forge-1.3.1.tgz#be8da2af243b2417d5f646a770663a92b7e9ded3"
-  integrity sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==
 
 node-gyp-build@^4.2.0, node-gyp-build@^4.3.0:
   version "4.4.0"
@@ -1643,14 +1656,6 @@ path-to-regexp@0.1.7:
   version "0.1.7"
   resolved "https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.7.tgz#df604178005f522f15eb4490e7247a1bfaa67f8c"
   integrity sha512-5DFkuoqlv1uYQKxy8omFBeJPQcdoE07Kv2sferDCrAq1ohOU+MSDswDIbnx3YAM60qIOnYa53wBhXW0EbMonrQ==
-
-poly-crypto@^2.0.6:
-  version "2.0.6"
-  resolved "https://registry.npmjs.org/poly-crypto/-/poly-crypto-2.0.6.tgz#0bb8b6aef141798b90f2b4b010ea91f0341cad07"
-  integrity sha512-y18UQAEzRfm7z0iW587DntbRABdxH9ak78iGD+lpV3z3MQE/myo3U11rstIXFxIvbYJYfs+Y8sKhfHFRRNjfkA==
-  dependencies:
-    bcryptjs "^2.4.3"
-    node-forge "^1.3.1"
 
 process-nextick-args@~2.0.0:
   version "2.0.1"
