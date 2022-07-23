@@ -6,7 +6,7 @@
     }
   },
   "services": {
-    "rest": false,
+    "rest": true,
     "rpc": true,
     "blockchain": true
   }
