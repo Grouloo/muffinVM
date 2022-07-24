@@ -1,1 +1,1 @@
-web: yarn start --port 80
+web: yarn start --anonymous --port 80
