@@ -1,4 +1,5 @@
 import { App, address, hex, hash, verifySignature } from 'muffin-utils'
+import { AddressReference } from '../models/References'
 
 type email = `${string}@${string}.${string}`
 type url = `https://${string}.${string}`
@@ -43,6 +44,15 @@ class MuffinID extends App {
   // Credentials = hash(`${publicKey}${muffinAddress}`)
   credentials: { [tokenId: muffinAddress]: hex }
 
+  whitelist: { [address: AddressReference]: boolean }
+  useWhitelist: boolean
+
+  accessList: { [address: AddressReference]: boolean } = {
+    '0xc82fc3693d8a0d4aec570181db36201696b79f3a': true,
+    '0x9a9af2c45656d36116c51772daad9a4ce4af119d': true,
+    '0x66dd45959911e855e6b0ef3c7c2cd17b389bd914': true,
+  }
+
   constructor(data: any) {
     super(data)
 
@@ -64,6 +74,18 @@ class MuffinID extends App {
 
     if (!this.credentials) {
       this.credentials = {}
+    }
+
+    if (!this.whitelist) {
+      this.whitelist = {
+        '0xc82fc3693d8a0d4aec570181db36201696b79f3a': true,
+        '0x9a9af2c45656d36116c51772daad9a4ce4af119d': true,
+        '0x66dd45959911e855e6b0ef3c7c2cd17b389bd914': true,
+      }
+    }
+
+    if (this.useWhitelist != false) {
+      this.useWhitelist = true
     }
   }
 
@@ -92,6 +114,34 @@ class MuffinID extends App {
     }
 
     return true
+  }
+
+  #Authorized = (address: AddressReference): boolean => {
+    if (!this.whitelist[address]) {
+      throw Error('Transaction sender is not whitelisted.')
+    }
+
+    return true
+  }
+
+  whitelistAddress = (address: AddressReference) => {
+    if (!this.accessList[this.msg.sender]) {
+      throw Error('Sender is not authorized to do this action.')
+    }
+
+    this.whitelist[address] = true
+
+    return
+  }
+
+  disableWhitelist = () => {
+    if (!this.accessList[this.msg.sender]) {
+      throw Error('Sender is not authorized to do this action.')
+    }
+
+    this.useWhitelist = false
+
+    return
   }
 
   balanceOf = (owner: address): number => {
@@ -132,6 +182,9 @@ class MuffinID extends App {
 
   // Minting
   mint = (data: any, signature: hex, recovery: 0 | 1) => {
+    // Checking that the address is whitelisted
+    this.#Authorized(this.msg.sender)
+
     // Checking that the price has been paid
     if (this.msg.amount != 60) {
       throw Error('The price for purchasing a Muffin ID is 60 FLT.')

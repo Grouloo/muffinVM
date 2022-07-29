@@ -1,6 +1,6 @@
 {
   "name": "muffin-utils",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Utilities used to interact with Muffin Network",
   "main": "./lib/index.js",
   "types": "lib/index.d.ts",

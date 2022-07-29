@@ -75,7 +75,7 @@ export default async function executeApp(
 
     vm.createContext(context)
 
-    await executableScript.runInContext(context)
+    await executableScript.runInContext(context, { timeout: 5000 })
 
     const { storage, res, tx } = context
 

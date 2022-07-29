@@ -21,6 +21,7 @@ export default async function createBlockchain(): Promise<Blockchain> {
           className: element.contract.className,
           script: element.contract.script,
           size: element.contract.script.length,
+          footprint: element.contract.footprint,
           storage: element.contract.storage,
         }
 

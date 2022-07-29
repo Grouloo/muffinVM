@@ -1,4 +1,4 @@
-import { calculateContractAddress, executeApp, hash } from '.'
+import { calculateContractAddress, delay, executeApp, hash } from '.'
 import BackendAdapter from '../adapters/BackendAdapter'
 import { encodeRLP } from '../ethereum'
 import Account from '../models/Account'
@@ -12,7 +12,10 @@ export default async function executeTransaction(
   previousStateHash: AddressReference,
   order: number,
   executeInternalTransactions: boolean
-): Promise<Transaction[] | undefined> {
+): Promise<{
+  internalTransactions?: Transaction[] | undefined
+  errorMessage?: string
+}> {
   try {
     let blockchain = await BackendAdapter.instance
       .useWorldState()
@@ -86,7 +89,9 @@ export default async function executeTransaction(
 
     // If there is no receiving address specified, then we assume it is a contract registering tx
     if (!receiver.address || (receiver.address as string) == '') {
-      const { environment, className, script } = JSON.parse(transaction.data)
+      const { environment, className, footprint, script } = JSON.parse(
+        transaction.data
+      )
 
       // We cannot allow loops in contracts, as they could be infinite or make the processing too long
       if (/(for|while|map)(\b|)\(/g.test(script)) {
@@ -130,7 +135,14 @@ export default async function executeTransaction(
         nonce: 0,
         isOwned: false,
         balance: transaction.amount,
-        contract: { size, environment, className, script, storage: {} },
+        contract: {
+          size,
+          environment,
+          className,
+          script,
+          footprint,
+          storage: {},
+        },
       })
 
       //Saving sender account
@@ -146,8 +158,7 @@ export default async function executeTransaction(
 
     // If the receiving account isn't owned, it is a contract
     else if (!receiver.isOwned) {
-      sender.withdraw(transaction.total)
-      receiver.add(transaction.amount)
+      sender.withdraw(transaction.fees)
 
       if (!transaction.data) {
         throw Error("Missing data. Must be '[methodName](arg1, arg2, ...)'")
@@ -155,11 +166,12 @@ export default async function executeTransaction(
       const [method, params] = transaction.data.split(/[()]/)
 
       if (!params) {
-        throw Error("Bad data. Must be '[methodName](arg1, arg2, ...)'")
+        throw Error(`Bad data. Must be "[methodName]('arg1', arg2, ...)"`)
       }
       const args = params // params.split(',')
 
       try {
+        // Executing contract
         const { storage, tx } = await executeApp(
           sender.address,
           receiver.address,
@@ -178,33 +190,37 @@ export default async function executeTransaction(
         }
 
         // Executing all internal transactions emitted during runtime
-        const internalTransactions = await Promise.all(
-          tx.map(async (internalTransaction: Transaction) => {
-            const subTx = await executeTransaction(
-              internalTransaction,
-              previousStateHash,
-              0,
-              true
-            )
+        const internalTransactions = []
 
-            if (!subTx) {
-              return
-            }
+        for (let internalTransaction of tx) {
+          const { internalTransactions: subTx } = await executeTransaction(
+            internalTransaction,
+            previousStateHash,
+            0,
+            true
+          )
 
-            internalTransaction.internalTransactions = subTx.filter(function (
-              element
-            ) {
-              return element !== undefined
-            })
+          if (!subTx) {
+            continue
+          }
 
-            return internalTransaction
+          internalTransaction.internalTransactions = subTx.filter(function (
+            element: any
+          ) {
+            return element !== undefined
           })
-        )
+
+          internalTransactions.push(internalTransaction)
+        }
 
         contract.storage = storage
 
         // Updating sender's nonce
         sender.nonce += 1
+
+        // Paying the amount
+        sender.withdraw(transaction.amount)
+        receiver.add(transaction.amount)
 
         // Saving edited accounts
         await BackendAdapter.instance
@@ -219,11 +235,23 @@ export default async function executeTransaction(
             contract,
           })
 
-        return internalTransactions.filter(function (element) {
-          return element !== undefined
-        }) as Transaction[]
+        const parsedInternalTransactions = internalTransactions.filter(
+          function (element) {
+            return element !== undefined
+          }
+        ) as Transaction[]
+
+        return { internalTransactions: parsedInternalTransactions }
       } catch (e) {
-        throw Error(`Internal App Error.\n ${(e as Error).message}`)
+        // Updating sender's nonce
+        sender.nonce += 1
+
+        // Saving edited accounts
+        await BackendAdapter.instance
+          .useWorldState()
+          .update('accounts', sender.address, sender)
+
+        return { errorMessage: `Internal App Error.\n ${(e as Error).message}` }
       }
     } else {
       try {
@@ -245,7 +273,7 @@ export default async function executeTransaction(
       }
     }
 
-    return
+    return {}
   } catch (e) {
     throw e as Error
   }

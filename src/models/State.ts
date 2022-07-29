@@ -14,6 +14,7 @@ export interface State {
     [x: AddressReference]: Bond
   }
   blockchain: {}
+  mysteryBoxes: {}
   meta?: {
     version: `${number}.${number}.${number}`
     eoaCount: number

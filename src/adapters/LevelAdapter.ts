@@ -8,6 +8,7 @@ import { AddressReference } from '../models/References'
 import { State } from '../models/State'
 import Bond from '../models/Bond'
 import Blockchain from '../models/Blockchain'
+import MysteryBox from '../models/MysteryBox'
 
 type collectionType =
   | 'accounts'
@@ -15,6 +16,7 @@ type collectionType =
   | 'transactions'
   | 'bonds'
   | 'blockchain'
+  | 'mysteryBoxes'
 
 const COLLECTIONS = {
   accounts: Account,
@@ -22,9 +24,11 @@ const COLLECTIONS = {
   transactions: Transaction,
   bonds: Bond,
   blockchain: Blockchain,
+  mysteryBoxes: MysteryBox,
 }
 
 const WORLDSTATE = '0x0'
+const MYSTERYBOXSTATE = '0xmb'
 
 export default class LevelAdapter {
   db: Level
@@ -61,6 +65,12 @@ export default class LevelAdapter {
 
   useWorldState = () => {
     this.initializeState(WORLDSTATE)
+
+    return LevelAdapter.instance
+  }
+
+  useMysteryBoxState = () => {
+    this.initializeState(MYSTERYBOXSTATE)
 
     return LevelAdapter.instance
   }
@@ -210,6 +220,7 @@ export default class LevelAdapter {
       blocks: {},
       bonds: {},
       blockchain: {},
+      mysteryBoxes: {},
     }
 
     await Promise.all(

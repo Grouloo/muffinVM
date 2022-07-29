@@ -1,7 +1,12 @@
 import sha256 from 'fast-sha256'
 import util from 'tweetnacl-util'
 import BackendAdapter from '../adapters/BackendAdapter'
-import { calculateFees, signMessage, verifySignature } from '../common'
+import {
+  calculateFees,
+  composeMessage,
+  signMessage,
+  verifySignature,
+} from '../common'
 import executeTransaction from '../common/executeTransaction'
 import hash from '../common/hash'
 import Account from './Account'
@@ -73,8 +78,8 @@ export default class Block extends BaseObject implements BlockType {
       .useWorldState()
       .read('blockchain', 'blockchain')
 
-    // Maximum of transactions that can be put in a block cannot be above the number of accounts
-    transactions = transactions.slice(0, blockchain.meta.eoaCount + 1)
+    // Maximum of transactions that can be put in a block shouldn't be above 6
+    transactions = transactions.slice(0, 6)
 
     const timestamp = new Date()
     const parentHash = blockchain.currentBlockHash
@@ -164,7 +169,7 @@ export default class Block extends BaseObject implements BlockType {
           }
         }
 
-        const internalTransactions = await executeTransaction(
+        const { internalTransactions, errorMessage } = await executeTransaction(
           transaction,
           previousStateHash,
           index,
@@ -178,8 +183,17 @@ export default class Block extends BaseObject implements BlockType {
         transaction.status = 'done'
         transaction.order = index
 
-        this.volume += transaction.total
+        // The fees are paid no matter what happens
         this.fees += transaction.fees
+
+        // If the contract generates an error,
+        // only the fees are paid
+        if (errorMessage) {
+          transaction.abortReason = errorMessage
+          this.volume += transaction.fees
+        } else {
+          this.volume += transaction.total
+        }
 
         await BackendAdapter.instance
           .useWorldState()

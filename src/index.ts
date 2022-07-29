@@ -6,7 +6,7 @@ import { Services } from 'ataraxia-services'
 import minimist from 'minimist'
 import Muffin from './models/Muffin'
 import Transaction from './models/Transaction'
-import { createBlockchain } from './common'
+import { createBlockchain, hash } from './common'
 import chalk from 'chalk'
 import Blockchain from './models/Blockchain'
 import Block from './models/Block'
@@ -15,6 +15,7 @@ import launchApi from './api'
 
 import meJSON from '../me.json'
 import config from '../config.json'
+import MysteryBox from './models/MysteryBox'
 
 let me = meJSON
 
@@ -101,6 +102,28 @@ const booting = async () => {
       console.log(
         chalk.green(`Blockchain synced to height ${meta.blocksCount - 1}`)
       )
+    }
+
+    // Mystery boxes
+    if (msg.type == 'mysteryBoxResponse' && config.services.mysteryBoxes) {
+      if (!Muffin.instance.awaitingMysteryBox) {
+        return
+      }
+
+      const mysteryBox = MysteryBox.instantiate(msg.data)
+
+      // Checking that the mystery box is the one we are waiting for
+      const boxHash = hash(`${mysteryBox.createdAt}-${mysteryBox.publicKey}`)
+
+      if (boxHash != Muffin.instance.awaitingMysteryBox) {
+        return
+      }
+
+      delete Muffin.instance.awaitingMysteryBox
+
+      BackendAdapter.instance
+        .useMysteryBoxState()
+        .create('mysteryBoxes', boxHash, mysteryBox)
     }
   })
 

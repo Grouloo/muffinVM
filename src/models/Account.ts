@@ -8,6 +8,7 @@ export interface ContractType {
   className: string
   script: string
   size: number
+  footprint: number
   storage: { [x: string]: any }
 }
 
@@ -28,6 +29,10 @@ export default class Account extends BaseObject {
 
   constructor(data: AccountType) {
     super(data)
+
+    if (this.contract && !this.contract.footprint) {
+      this.contract.footprint = 1
+    }
   }
 
   static instantiate = (data: AccountType): Account => {
