@@ -1,4 +1,4 @@
-import { address } from '../types'
+import { address } from "../types"
 
 export interface msg {
   sender: address

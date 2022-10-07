@@ -1,18 +1,18 @@
-import { App, address, hex, hash, verifySignature } from 'muffin-utils'
-import { AddressReference } from '../models/References'
+import { App, address, hex, hash, verifySignature } from "muffin-utils"
+import { AddressReference } from "../models/References"
 
 type email = `${string}@${string}.${string}`
 type url = `https://${string}.${string}`
 
 type tokenField =
-  | 'firstname'
-  | 'middlename'
-  | 'lastname'
-  | 'username'
-  | 'email'
-  | 'picture'
-  | 'birthdate'
-  | 'createdAt'
+  | "firstname"
+  | "middlename"
+  | "lastname"
+  | "username"
+  | "email"
+  | "picture"
+  | "birthdate"
+  | "createdAt"
 
 type muffinIDContent = {
   firstname: string
@@ -25,13 +25,14 @@ type muffinIDContent = {
   city?: string
   country?: string
   createdAt: Date
+  nonce: number
 }
 
 type muffinAddress = `mx${string}`
 
 class MuffinID extends App {
-  tokenName: string = 'Muffin ID'
-  tokenSymbol: string = 'MID'
+  tokenName: string = "Muffin ID"
+  tokenSymbol: string = "MID"
   supply: number
 
   tokens: {
@@ -39,6 +40,8 @@ class MuffinID extends App {
   }
 
   owners: { [tokenId: muffinAddress]: address }
+  reversedOwners: { [owner: address]: muffinAddress }
+
   balances: { [owner: address]: number }
 
   // Credentials = hash(`${publicKey}${muffinAddress}`)
@@ -48,9 +51,9 @@ class MuffinID extends App {
   useWhitelist: boolean
 
   accessList: { [address: AddressReference]: boolean } = {
-    '0xc82fc3693d8a0d4aec570181db36201696b79f3a': true,
-    '0x9a9af2c45656d36116c51772daad9a4ce4af119d': true,
-    '0x66dd45959911e855e6b0ef3c7c2cd17b389bd914': true,
+    "0xc82fc3693d8a0d4aec570181db36201696b79f3a": true,
+    "0x9a9af2c45656d36116c51772daad9a4ce4af119d": true,
+    "0x66dd45959911e855e6b0ef3c7c2cd17b389bd914": true,
   }
 
   constructor(data: any) {
@@ -68,6 +71,16 @@ class MuffinID extends App {
       this.owners = {}
     }
 
+    if (!this.reversedOwners) {
+      this.reversedOwners = Object.entries(this.owners).reduce(
+        (acc: any, [key, value]: [string, string]) => {
+          acc[value] = key
+          return acc
+        },
+        {}
+      )
+    }
+
     if (!this.balances) {
       this.balances = {}
     }
@@ -78,9 +91,9 @@ class MuffinID extends App {
 
     if (!this.whitelist) {
       this.whitelist = {
-        '0xc82fc3693d8a0d4aec570181db36201696b79f3a': true,
-        '0x9a9af2c45656d36116c51772daad9a4ce4af119d': true,
-        '0x66dd45959911e855e6b0ef3c7c2cd17b389bd914': true,
+        "0xc82fc3693d8a0d4aec570181db36201696b79f3a": true,
+        "0x9a9af2c45656d36116c51772daad9a4ce4af119d": true,
+        "0x66dd45959911e855e6b0ef3c7c2cd17b389bd914": true,
       }
     }
 
@@ -99,26 +112,33 @@ class MuffinID extends App {
     return muffinAddress
   }
 
-  #Authenticate = (
+  Authenticate = (
     muffinAddress: muffinAddress,
     signature: hex,
     recovery: 0 | 1
   ): boolean => {
-    const hashedAddress = hash(muffinAddress)
-    const { publicKey } = verifySignature(signature, hashedAddress, recovery)
+    const account = this.tokens[muffinAddress]
+
+    const nonce = account.nonce || 0
+
+    const message = hash((account.nonce || 0).toString())
+
+    const { publicKey } = verifySignature(signature, message, recovery)
 
     const credential = hash(`${publicKey}${muffinAddress}`)
 
     if (this.credentials[muffinAddress] != credential) {
-      throw Error('Unauthorized.')
+      throw Error("Unauthorized.")
     }
+
+    this.tokens[muffinAddress].nonce = nonce + 1
 
     return true
   }
 
   #Authorized = (address: AddressReference): boolean => {
     if (!this.whitelist[address]) {
-      throw Error('Transaction sender is not whitelisted.')
+      throw Error("Transaction sender is not whitelisted.")
     }
 
     return true
@@ -126,7 +146,7 @@ class MuffinID extends App {
 
   whitelistAddress = (address: AddressReference) => {
     if (!this.accessList[this.msg.sender]) {
-      throw Error('Sender is not authorized to do this action.')
+      throw Error("Sender is not authorized to do this action.")
     }
 
     this.whitelist[address] = true
@@ -136,7 +156,7 @@ class MuffinID extends App {
 
   disableWhitelist = () => {
     if (!this.accessList[this.msg.sender]) {
-      throw Error('Sender is not authorized to do this action.')
+      throw Error("Sender is not authorized to do this action.")
     }
 
     this.useWhitelist = false
@@ -148,12 +168,38 @@ class MuffinID extends App {
     return this.balances[owner] || 0
   }
 
+  idOf = (owner: address): muffinAddress => {
+    if (!this.reversedOwners[owner]) {
+      throw Error("This address doesn't own a Muffin ID.")
+    }
+
+    return this.reversedOwners[owner]
+  }
+
   ownerOf = (tokenId: muffinAddress): address => {
     if (!this.owners[tokenId]) {
-      throw "Specified Muffin ID doesn't exist."
+      throw Error("Specified Muffin ID doesn't exist.")
     }
 
     return this.owners[tokenId]
+  }
+
+  credentialOf = (tokenId: muffinAddress): address => {
+    if (!this.credentials[tokenId]) {
+      throw Error("Specified Muffin ID doesn't exist.")
+    }
+
+    return this.credentials[tokenId]
+  }
+
+  nonceOf = (tokenId: muffinAddress): string => {
+    if (!this.tokens[tokenId]) {
+      throw Error("Specified Muffin ID doesn't exist.")
+    }
+
+    const { nonce } = this.tokens[tokenId]
+
+    return nonce ? nonce.toString() : "0"
   }
 
   name = (): string => {
@@ -187,7 +233,7 @@ class MuffinID extends App {
 
     // Checking that the price has been paid
     if (this.msg.amount != 60) {
-      throw Error('The price for purchasing a Muffin ID is 60 FLT.')
+      throw Error("The price for purchasing a Muffin ID is 60 FLT.")
     }
 
     const {
@@ -201,28 +247,28 @@ class MuffinID extends App {
     } = JSON.parse(data)
 
     // Verifying data
-    if (!firstname || typeof firstname != 'string') {
-      throw Error('A Muffin ID must have a firstname.')
+    if (!firstname || typeof firstname != "string") {
+      throw Error("A Muffin ID must have a firstname.")
     }
 
-    if (!middlename || typeof middlename != 'string') {
-      throw Error('A Muffin ID must have a middlename.')
+    if (!middlename || typeof middlename != "string") {
+      throw Error("A Muffin ID must have a middlename.")
     }
 
-    if (!lastname || typeof lastname != 'string') {
-      throw Error('A Muffin ID must have a lastname.')
+    if (!lastname || typeof lastname != "string") {
+      throw Error("A Muffin ID must have a lastname.")
     }
 
-    if (!username || typeof username != 'string') {
-      throw Error('A Muffin ID must have a username.')
+    if (!username || typeof username != "string") {
+      throw Error("A Muffin ID must have a username.")
     }
 
-    if (!email || typeof email != 'string') {
-      throw Error('A Muffin ID must have an email.')
+    if (!email || typeof email != "string") {
+      throw Error("A Muffin ID must have an email.")
     }
 
     if (!birthdate) {
-      throw Error('A Muffin ID must have a birth date.')
+      throw Error("A Muffin ID must have a birth date.")
     }
 
     const createdAt = new Date()
@@ -236,6 +282,7 @@ class MuffinID extends App {
       createdAt,
       picture,
       birthdate,
+      nonce: 1,
     }
 
     // Generating hash
@@ -243,14 +290,14 @@ class MuffinID extends App {
 
     // We have to check if the Muffin ID doesn't already exist
     if (this.tokens[tokenHash]) {
-      throw Error('A similar Muffin ID already exists!')
+      throw Error("A similar Muffin ID already exists!")
     }
 
     // Registering the new Muffin ID
     this.tokens[tokenHash] = token
 
     // Generate credentials
-    const { publicKey } = verifySignature(signature, hash(''), recovery)
+    const { publicKey } = verifySignature(signature, hash(""), recovery)
     const credential = hash(`${publicKey}${tokenHash}`)
 
     // Registering credentials
@@ -258,6 +305,7 @@ class MuffinID extends App {
 
     // Bonding Muffin ID with account address
     this.owners[tokenHash] = this.msg.sender
+    this.reversedOwners[this.msg.sender] = tokenHash
 
     // Updating balane of owner
     this.balances[this.msg.sender] = 1
@@ -269,20 +317,20 @@ class MuffinID extends App {
   // Recovering a Muffin ID with a password
   recover = (muffinAddress: muffinAddress, signature: hex, recovery: 0 | 1) => {
     if (!muffinAddress) {
-      throw Error('Must specify a Muffin ID address to recover.')
+      throw Error("Must specify a Muffin ID address to recover.")
     }
 
     if (!signature) {
       throw Error(
-        'To recover a Muffin ID, the address of the muffin ID must be signed with the private key.'
+        "To recover a Muffin ID, the address of the muffin ID must be signed with the private key."
       )
     }
 
     if (this.balances[this.msg.sender] > 0) {
-      throw Error('A Muffin ID is already linked to this account.')
+      throw Error("A Muffin ID is already linked to this account.")
     }
 
-    this.#Authenticate(muffinAddress, signature, recovery)
+    this.Authenticate(muffinAddress, signature, recovery)
 
     // Updating balances
     this.balances[this.owners[muffinAddress]] = 0
@@ -290,6 +338,7 @@ class MuffinID extends App {
 
     // Associating the recovered Muffin ID with the new account
     this.owners[muffinAddress] = this.msg.sender
+    this.reversedOwners[this.msg.sender] = muffinAddress
   }
 
   patch = (
@@ -306,7 +355,7 @@ class MuffinID extends App {
       throw Error("Specified Muffin ID doesn't exist.")
     }
 
-    this.#Authenticate(muffinAddress, signature, recovery)
+    this.Authenticate(muffinAddress, signature, recovery)
 
     if (username) {
       token.username = username

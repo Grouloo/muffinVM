@@ -1,9 +1,9 @@
-import { AddressReference } from '../models/References'
-import BackendAdapter from '../adapters/BackendAdapter'
-import vm from 'vm'
-import * as muffin from 'muffin-utils'
-import Account from '../models/Account'
-import chalk from 'chalk'
+import { AddressReference } from "../models/References"
+import BackendAdapter from "../adapters/BackendAdapter"
+import vm from "vm"
+import * as muffin from "muffin-utils"
+import Account from "../models/Account"
+import chalk from "chalk"
 
 export default async function executeApp(
   senderAddress: AddressReference,
@@ -14,15 +14,15 @@ export default async function executeApp(
 ) {
   const account: Account = await BackendAdapter.instance
     .useWorldState()
-    .read('accounts', receiverAddress)
+    .read("accounts", receiverAddress)
 
   // Account has to ben an executable contract
   if (account.isOwned) {
-    throw Error('Not executable.')
+    throw Error("Not executable.")
   }
 
   if (!account.contract) {
-    throw Error('Missing informations.')
+    throw Error("Missing informations.")
   }
 
   //console.log(chalk.yellow(`Running ${account.contract.className}`))
@@ -34,7 +34,7 @@ export default async function executeApp(
     const context: {
       storage: { [x: string]: any }
       tx: any[]
-      'muffin-utils': any
+      "muffin-utils": any
       res: any
       require?: any
       module?: any
@@ -46,13 +46,13 @@ export default async function executeApp(
       },
       tx: [],
       res: undefined,
-      'muffin-utils': muffin,
+      "muffin-utils": muffin,
       require,
       module,
       // console,
     }
 
-    let params = ''
+    let params = ""
     /*args.map((arg: any, index: number) => {
       params += /^\d+$/.test(arg) ? parseFloat(arg) : `'${arg}'`
 
